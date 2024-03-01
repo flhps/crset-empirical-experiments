@@ -3,6 +3,7 @@ import uuid
 from hashlib import sha256
 from pickle import dumps
 import math
+from collections import Counter
 
 
 def hash_func(obj):
@@ -53,3 +54,11 @@ class FilterCascade:
         for bf in self.filters:
             size = size + bf.size_in_bits
         return size
+
+    def count_set_bits(self):
+        return sum(format(i, '08b').count('1') for i in self.filters[0].save_bytes())
+
+    def calculate_entropy(self):
+        s = ''.join(format(i, '08b') for i in self.filters[0].save_bytes())
+        p, lns = Counter(s), float(len(s))
+        return math.log2(lns) - sum(count * math.log2(count) for count in p.values()) / lns

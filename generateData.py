@@ -1,12 +1,11 @@
 import random
-import numpy
 import uuid
 from amqStatusList import FilterCascade
 import numpy as np
 import concurrent.futures
 
 
-def generate_data_point(num_included, num_excluded, fprs=None):
+def generate_data_point(num_included:int, num_excluded:int, fprs=None):
     test_cascade = None
     tries = 0
     while not test_cascade:
@@ -25,18 +24,24 @@ def generate_data_point(num_included, num_excluded, fprs=None):
     if not test_cascade:
         raise Exception(
             f"Cascade construction failed repeatedly for {num_included} inclusions and {num_excluded} exclusions with {fprs} fpr targets")
-    return np.array([test_cascade.size_in_bits() / 8.0, len(test_cascade.filters)])
+    return [
+        float(test_cascade.size_in_bits()),
+        float(len(test_cascade.filters)),
+        float(test_cascade.filters[0].size_in_bits),
+        float(test_cascade.count_set_bits()),
+        test_cascade.calculate_entropy()
+    ]
 
 
 def rnd_data_point():
-    n_included = random.randint(1, 10_000)
-    n_excluded = random.randint(1, 10_000)
-    return [generate_data_point(n_included, n_excluded), [n_included, n_excluded]]
+    n_included = random.randint(1, 100_000)
+    n_excluded = random.randint(1, 100_000)
+    return generate_data_point(n_included, n_excluded), [n_included, n_excluded]
 
 
 def generate_data(n_samples=100_000):
-    X = numpy.empty([n_samples, 2])
-    y = numpy.empty([n_samples, 2])
+    X = np.empty([n_samples, 5])
+    y = np.empty([n_samples, 2])
     with concurrent.futures.ProcessPoolExecutor(max_workers=10) as executor:
         future_to_data = {executor.submit(rnd_data_point): i for i in range(n_samples)}
         for future in concurrent.futures.as_completed(future_to_data):
@@ -48,6 +53,12 @@ def generate_data(n_samples=100_000):
             else:
                 if i % 10 == 0:
                     print(f"Data point {i}")
+                    print(data[0])
                 X[i, :] = data[0]
                 y[i, :] = data[1]
     return [X, y]
+
+
+if __name__ == '__main__':
+    generate_data(10)
+    print("done")
