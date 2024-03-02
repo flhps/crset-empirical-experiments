@@ -13,7 +13,7 @@ def hash_func(obj):
 
 def new_bloom(size, fpr):
     # if the filter is not slightly oversized, the cascade construction fails too often
-    return Bloom(math.ceil(1.1 * size), fpr, hash_func)
+    return Bloom(math.ceil(1.3 * size), fpr, hash_func)
 
 
 class FilterCascade:
