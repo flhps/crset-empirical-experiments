@@ -34,8 +34,8 @@ def generate_data_point(num_included: int, num_excluded: int, fprs=None):
 
 
 def rnd_data_point():
-    n_included = random.randint(1, 100_000)
-    n_excluded = random.randint(1, 100_000)
+    n_included = random.randint(1, 1_000_000)
+    n_excluded = random.randint(1, 1_000_000)
     return generate_data_point(n_included, n_excluded), [n_included, n_excluded]
 
 

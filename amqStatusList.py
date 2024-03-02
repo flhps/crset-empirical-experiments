@@ -4,6 +4,7 @@ from hashlib import sha256
 from pickle import dumps
 import math
 from collections import Counter
+import random
 
 
 def hash_func(obj):
@@ -13,13 +14,14 @@ def hash_func(obj):
 
 def new_bloom(size, fpr):
     # if the filter is not slightly oversized, the cascade construction fails too often
-    return Bloom(math.ceil(1.3 * size), fpr, hash_func)
+    multi = random.uniform(1.1, 1.6)
+    return Bloom(math.ceil(multi * size), fpr, hash_func)
 
 
 class FilterCascade:
     def __init__(self, positives, negatives, fprs=None):
         if fprs is None:
-            fprs = [0.006]
+            fprs = [random.uniform(0.004, 0.1)]
         self.filters = []
         self.salt = str(uuid.uuid4())
         self.__help_build_cascade(positives, negatives, fprs)
