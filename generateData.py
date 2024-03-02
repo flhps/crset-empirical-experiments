@@ -5,7 +5,7 @@ import numpy as np
 import concurrent.futures
 
 
-def generate_data_point(num_included:int, num_excluded:int, fprs=None):
+def generate_data_point(num_included: int, num_excluded: int, fprs=None):
     test_cascade = None
     tries = 0
     while not test_cascade:
@@ -51,7 +51,7 @@ def generate_data(n_samples=100_000):
             except Exception as exc:
                 print('%r generated an exception: %s' % (i, exc))
             else:
-                if i % 10 == 0:
+                if i % 100 == 0:
                     print(f"Data point {i}")
                     print(data[0])
                 X[i, :] = data[0]
