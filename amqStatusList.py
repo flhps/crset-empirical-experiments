@@ -21,7 +21,8 @@ def new_bloom(size, fpr):
 class FilterCascade:
     def __init__(self, positives, negatives, fprs=None):
         if fprs is None:
-            fprs = [random.uniform(0.004, 0.1)]
+            # fprs = [random.uniform(0.004, 0.1)]
+            fprs = [0.006]
         self.filters = []
         self.salt = str(uuid.uuid4())
         self.__help_build_cascade(positives, negatives, fprs)
