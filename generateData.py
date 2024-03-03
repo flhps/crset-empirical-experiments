@@ -42,7 +42,7 @@ def rnd_data_point():
 def generate_data(n_samples=100_000):
     X = np.empty([n_samples, 5])
     y = np.empty([n_samples, 2])
-    with concurrent.futures.ProcessPoolExecutor(max_workers=20) as executor:
+    with concurrent.futures.ProcessPoolExecutor(max_workers=10) as executor:
         future_to_data = {executor.submit(rnd_data_point): i for i in range(n_samples)}
         for future in concurrent.futures.as_completed(future_to_data):
             i = future_to_data[future]
