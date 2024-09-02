@@ -4,25 +4,23 @@ from hashlib import sha256
 from pickle import dumps
 import math
 from collections import Counter
-import random
 
 
 def hash_func(obj):
     h = sha256(dumps(obj)).digest()
-    return int.from_bytes(h[:16], "big") - 2 ** 127
+    return int.from_bytes(h[:16], "big") - 2**127
 
 
 def new_bloom(size, fpr):
     # if the filter is not slightly oversized, the cascade construction fails too often
-    multi = random.uniform(1.1, 1.6)
+    multi = 1.2
     return Bloom(math.ceil(multi * size), fpr, hash_func)
 
 
 class FilterCascade:
     def __init__(self, positives, negatives, fprs=None):
         if fprs is None:
-            fprs = [random.uniform(0.004, 0.1)]
-            #fprs = [0.006]
+            fprs = [0.006]
         self.filters = []
         self.salt = str(uuid.uuid4())
         self.__help_build_cascade(positives, negatives, fprs)
@@ -59,9 +57,11 @@ class FilterCascade:
         return size
 
     def count_set_bits(self):
-        return sum(format(i, '08b').count('1') for i in self.filters[0].save_bytes())
+        return sum(format(i, "08b").count("1") for i in self.filters[0].save_bytes())
 
     def calculate_entropy(self):
-        s = ''.join(format(i, '08b') for i in self.filters[0].save_bytes())
+        s = "".join(format(i, "08b") for i in self.filters[0].save_bytes())
         p, lns = Counter(s), float(len(s))
-        return math.log2(lns) - sum(count * math.log2(count) for count in p.values()) / lns
+        return (
+            math.log2(lns) - sum(count * math.log2(count) for count in p.values()) / lns
+        )
