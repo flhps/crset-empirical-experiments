@@ -14,17 +14,25 @@ def test_regressor(regressor, X_train, X_test, y_train, y_test):
     regressor.fit(X_train, y_train)
     y_pred = regressor.predict(X_test)
     print("MAE: ", mean_absolute_error(y_test, y_pred))
-    print("MAE (revoked): ", mean_absolute_error(y_test[:, 0], y_pred[:, 0]))
-    print("MAE (valid): ", mean_absolute_error(y_test[:, 1], y_pred[:, 1]))
+    if len(y_test.shape) > 1:
+        for i in range(0, y_test.shape[1]):
+            print("MAE (", i, "): ", mean_absolute_error(y_test[:, i], y_pred[:, i]))
     print("MAPE: ", mean_absolute_percentage_error(y_test, y_pred))
-    print(
-        "MAPE (revoked): ", mean_absolute_percentage_error(y_test[:, 0], y_pred[:, 0])
-    )
-    print("MAPE (valid): ", mean_absolute_percentage_error(y_test[:, 1], y_pred[:, 1]))
+    if len(y_test.shape) > 1:
+        for i in range(0, y_test.shape[1]):
+            print(
+                "MAPE (",
+                i,
+                "): ",
+                mean_absolute_percentage_error(y_test[:, i], y_pred[:, i]),
+            )
     print("R2: ", regressor.score(X_test, y_test))
 
 
 def build_and_eval_regressor(X, y):
+    # scikit seems to expect one-value predictions as (n_samples, ) instead of (n_samples, 1)
+    if y.shape[1] == 1:
+        y = y.ravel()
     X_train, X_test, y_train, y_test = train_test_split(X, y, train_size=0.6)
     print("--------------------------")
     print("Random Forest Regressor")

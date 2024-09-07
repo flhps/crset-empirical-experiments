@@ -7,8 +7,15 @@ import pickle
 import time
 
 
-def generate_data_point(
-    num_included: int, num_excluded: int, maxinc, maxexc, fprs=None
+def generate_data_series(
+    num_included: int,
+    num_excluded: int,
+    maxinc,
+    maxexc,
+    fprs=None,
+    deltainc=100,
+    deltaexc=1000,
+    negdeltainc=False,
 ):
     test_cascade = None
     tries = 0
@@ -38,21 +45,21 @@ def generate_data_point(
     ]
 
 
-def rnd_data_point(maxinc, maxexc, fprs=None):
-    n_included = random.randint(1, maxinc)
+def rnd_data_point(macinc, maxexc, fprs=None):
+    n_included = random.randint(1, macinc)
     n_excluded = random.randint(1, maxexc)
-    return generate_data_point(n_included, n_excluded, maxinc, maxexc, fprs), [
+    return generate_data_point(n_included, n_excluded, macinc, maxexc, fprs), [
         n_included,
         n_excluded,
     ]
 
 
-def generate_data(maxinc, maxexc, n_samples=100_000, fprs=None):
+def generate_data(maxinc, macexc, n_samples=100_000, fprs=None):
     X = np.empty([n_samples, 5])
     y = np.empty([n_samples, 2])
     with concurrent.futures.ProcessPoolExecutor(max_workers=6) as executor:
         future_to_data = {
-            executor.submit(rnd_data_point, maxinc, maxexc, fprs): i
+            executor.submit(rnd_data_point, maxinc, macexc, fprs): i
             for i in range(n_samples)
         }
         for future in concurrent.futures.as_completed(future_to_data):

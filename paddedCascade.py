@@ -3,10 +3,10 @@ from filterCascade import FilterCascade
 
 
 class PaddedCascade(FilterCascade):
-    def __init__(self, positives, negatives, numpos, numneg, fprs=None):
-        # pad the two sets of UUIDs by adding more random UUIDs until positives has numpos entries and negatives has numneg entries
-        padpos = [uuid.uuid4() for _ in range(numpos - len(positives))]
+    def __init__(self, positives, negatives, targetpos, targetneg, fprs=None):
+        # pad the two sets of UUIDs by adding more random UUIDs until targets are reached
+        padpos = [uuid.uuid4() for _ in range(targetpos - len(positives))]
         padpos += [u for u in positives]
-        padneg = [uuid.uuid4() for _ in range(numneg - len(negatives))]
+        padneg = [uuid.uuid4() for _ in range(targetneg - len(negatives))]
         padneg += [u for u in negatives]
         super().__init__(padpos, padneg, fprs)

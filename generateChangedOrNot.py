@@ -1,0 +1,72 @@
+import random
+import numpy as np
+import concurrent.futures
+import pickle
+import time
+import cascadeUtils
+
+
+def rnd_data_point(maxrevoked, maxvalid, fprs=None):
+    n_included = random.randint(1, maxrevoked)
+    n_excluded = random.randint(0, maxvalid)
+    revoked = cascadeUtils.generate_id_set(n_included)
+    valid = cascadeUtils.generate_id_set(n_excluded)
+    cascade = cascadeUtils.create_padded_cascade(
+        revoked, valid, maxrevoked, maxvalid, fprs
+    )
+    if bool(random.getrandbits(1)):
+        same = cascadeUtils.create_padded_cascade(
+            revoked, valid, maxrevoked, maxvalid, fprs
+        )
+        return (
+            cascadeUtils.vectorize_cascade(cascade)
+            + cascadeUtils.vectorize_cascade(same),
+            [1],
+        )
+    # remove some ids from the valid set and add them to the revoked set
+    delta = random.choices(valid, k=random.randint(1, len(valid)))
+    different = cascadeUtils.create_padded_cascade(
+        revoked + delta,
+        [id for id in valid if id not in delta],
+        maxrevoked,
+        maxvalid,
+        fprs,
+    )
+    return (
+        cascadeUtils.vectorize_cascade(cascade)
+        + cascadeUtils.vectorize_cascade(different),
+        [-1],
+    )
+
+
+def generate_data(maxrevoked, maxvalid, n_samples=100_000, fprs=None):
+    X = np.empty([n_samples, 2 * cascadeUtils.vectorized_cascade_size()])
+    y = np.empty([n_samples, 1])
+    with concurrent.futures.ProcessPoolExecutor(max_workers=6) as executor:
+        future_to_data = {
+            executor.submit(rnd_data_point, maxrevoked, maxvalid, fprs): i
+            for i in range(n_samples)
+        }
+        for future in concurrent.futures.as_completed(future_to_data):
+            i = future_to_data[future]
+            try:
+                data = future.result()
+            except Exception as exc:
+                print("%r generated an exception: %s" % (i, exc))
+            else:
+                if i % 100 == 0:
+                    print(f"Data point {i}")
+                    print(data[0])
+                X[i, :] = data[0]
+                y[i, :] = data[1]
+    return [X, y]
+
+
+if __name__ == "__main__":
+    print("Generating data...")
+    d = generate_data(1000, 10000, 2000)
+    print("Done generating data.")
+    fname = f"data/changedOrNot-{time.time_ns()}.pkl"
+    with open(fname, "wb") as outp:
+        pickle.dump(d, outp, pickle.HIGHEST_PROTOCOL)
+    print("done")
