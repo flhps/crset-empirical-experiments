@@ -4,6 +4,8 @@ from filterCascade import FilterCascade
 
 class PaddedCascade(FilterCascade):
     def __init__(self, positives, negatives, targetpos, targetneg, fprs=None):
+        assert len(positives) <= targetpos
+        assert len(negatives) <= targetneg
         # pad the two sets of UUIDs by adding more random UUIDs until targets are reached
         padpos = [uuid.uuid4() for _ in range(targetpos - len(positives))]
         padpos += [u for u in positives]
