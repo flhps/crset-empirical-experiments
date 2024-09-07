@@ -6,6 +6,7 @@ from sklearn.pipeline import make_pipeline
 from sklearn.model_selection import cross_validate
 import pickle
 import sys
+import numpy as np
 
 
 def test_classifier(classifier, X_train, X_test, y_train, y_test):
@@ -28,8 +29,11 @@ def build_and_eval_classifier(X, y):
     print("--------------------------")
     print("Linear Support Vector Classifier")
     print("--------------------------")
-    clf2 = make_pipeline(StandardScaler(), LinearSVC(random_state=0, tol=1e-4))
+    linear_svc = LinearSVC(random_state=0, tol=1e-4)
+    clf2 = make_pipeline(StandardScaler(), linear_svc)
     test_classifier(clf2, X_train, X_test, y_train, y_test)
+    np.set_printoptions(suppress=True)
+    print(linear_svc.coef_)
 
 
 if __name__ == "__main__":
