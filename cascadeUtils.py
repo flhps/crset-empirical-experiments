@@ -1,9 +1,11 @@
 import uuid
 from paddedCascade import PaddedCascade
+import random
 
 
 def generate_id_set(size):
     return [uuid.uuid4() for _ in range(size)]
+    # return [random.randint(0, 2**128) for _ in range(size)]
 
 
 def create_padded_cascade(revokedids, validids, revokedmax, validmax, fprs=None):
@@ -16,7 +18,8 @@ def create_padded_cascade(revokedids, validids, revokedmax, validmax, fprs=None)
             )
         except Exception:
             tries = tries + 1
-            if tries > 3:
+            print("Trying cascade generation again after it failed.")
+            if tries > 5:
                 break
     if not test_cascade:
         raise Exception(

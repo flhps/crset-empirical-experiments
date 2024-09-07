@@ -1,54 +1,24 @@
 import random
-import uuid
-from paddedCascade import PaddedCascade
+import cascadeUtils
 import numpy as np
 import concurrent.futures
 import pickle
 import time
 
 
-def generate_data_point(
-    num_included: int, num_excluded: int, maxinc, maxexc, fprs=None
-):
-    test_cascade = None
-    tries = 0
-    while not test_cascade:
-        try:
-            revoked = []
-            for _ in range(num_included):
-                revoked.append(uuid.uuid4())
-            valid = []
-            for _ in range(num_excluded):
-                valid.append(uuid.uuid4())
-            test_cascade = PaddedCascade(revoked, valid, maxinc, maxexc, fprs)
-        except Exception:
-            tries = tries + 1
-            if tries > 3:
-                break
-    if not test_cascade:
-        raise Exception(
-            f"Cascade construction failed repeatedly for {num_included} inclusions and {num_excluded} exclusions with {fprs} fpr targets"
-        )
-    return [
-        float(test_cascade.size_in_bits()),
-        float(len(test_cascade.filters)),
-        float(test_cascade.filters[0].size_in_bits),
-        float(test_cascade.count_set_bits()),
-        test_cascade.calculate_entropy(),
-    ]
-
-
 def rnd_data_point(maxinc, maxexc, fprs=None):
     n_included = random.randint(1, maxinc)
-    n_excluded = random.randint(1, maxexc)
-    return generate_data_point(n_included, n_excluded, maxinc, maxexc, fprs), [
-        n_included,
-        n_excluded,
-    ]
+    n_excluded = random.randint(0, maxexc)
+    revoked = cascadeUtils.generate_id_set(n_included)
+    valid = cascadeUtils.generate_id_set(n_excluded)
+    cascade = cascadeUtils.create_padded_cascade(
+        revoked, valid, maxinc, maxexc, fprs
+    )
+    return cascadeUtils.vectorize_cascade(cascade),[n_included,n_excluded]
 
 
 def generate_data(maxinc, maxexc, n_samples=100_000, fprs=None):
-    X = np.empty([n_samples, 5])
+    X = np.empty([n_samples, cascadeUtils.vectorized_cascade_size()])
     y = np.empty([n_samples, 2])
     with concurrent.futures.ProcessPoolExecutor(max_workers=6) as executor:
         future_to_data = {
@@ -74,7 +44,7 @@ if __name__ == "__main__":
     print("Generating data...")
     d = generate_data(1000, 10000, 10000)
     print("Done generating data.")
-    fname = f"data/training-data-{time.time_ns()}.pkl"
+    fname = f"data/independentCascades-{time.time_ns()}.pkl"
     with open(fname, "wb") as outp:
         pickle.dump(d, outp, pickle.HIGHEST_PROTOCOL)
     print("done")

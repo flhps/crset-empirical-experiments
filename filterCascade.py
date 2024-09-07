@@ -12,9 +12,7 @@ def hash_func(obj):
 
 
 def new_bloom(size, fpr):
-    # if the filter is not slightly oversized, the cascade construction fails too often
-    multi = 1.2
-    return Bloom(math.ceil(multi * size), fpr, hash_func)
+    return Bloom(size, fpr, hash_func)
 
 
 class FilterCascade:
@@ -30,7 +28,7 @@ class FilterCascade:
         fpr = fprs[-1]
         if len(fprs) > len(self.filters):
             fpr = fprs[len(self.filters)]
-        bloom = new_bloom(len(positives), fpr)
+        bloom = new_bloom(math.ceil(1.2 * len(positives)), fpr)
         for elem in positives:
             bloom.add(str(elem) + self.salt)
         fps = []

@@ -43,7 +43,7 @@ def rnd_data_point(maxrevoked, maxvalid, fprs=None):
 def generate_data(maxrevoked, maxvalid, n_samples=100_000, fprs=None):
     X = np.empty([n_samples, 2 * cascadeUtils.vectorized_cascade_size()])
     y = np.empty([n_samples, 1])
-    with concurrent.futures.ProcessPoolExecutor(max_workers=6) as executor:
+    with concurrent.futures.ProcessPoolExecutor() as executor:
         future_to_data = {
             executor.submit(rnd_data_point, maxrevoked, maxvalid, fprs): i
             for i in range(n_samples)
@@ -65,7 +65,7 @@ def generate_data(maxrevoked, maxvalid, n_samples=100_000, fprs=None):
 
 if __name__ == "__main__":
     print("Generating data...")
-    d = generate_data(1000, 10000, 2000)
+    d = generate_data(1000, 10000, 20000)
     print("Done generating data.")
     fname = f"data/changedOrNot-{time.time_ns()}.pkl"
     with open(fname, "wb") as outp:
