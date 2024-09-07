@@ -7,8 +7,8 @@ import cascadeUtils
 
 
 def rnd_data_point(maxrevoked, maxvalid, fprs=None):
-    n_included = random.randint(1, maxrevoked - 1)
-    n_excluded = random.randint(0, maxvalid)
+    n_included = random.randint(0, maxrevoked - 1)
+    n_excluded = random.randint(1, maxvalid)
     # print("rnd data point ", n_included, "inc and ", n_excluded)
     revoked = cascadeUtils.generate_id_set(n_included)
     valid = cascadeUtils.generate_id_set(n_excluded)
@@ -25,10 +25,12 @@ def rnd_data_point(maxrevoked, maxvalid, fprs=None):
             [1],
         )
     # remove some ids from the valid set and add them to the revoked set
-    delta = random.choices(valid, k=random.randint(1, maxrevoked - n_included))
+    delta = random.sample(valid, random.randint(1, min(maxrevoked - n_included, len(valid))))
+    revoked2 = revoked + delta
+    valid2 = [x for x in valid if x not in delta]
     different = cascadeUtils.create_padded_cascade(
-        revoked + delta,
-        [id for id in valid if id not in delta],
+        revoked2,
+        valid2,
         maxrevoked,
         maxvalid,
         fprs,
