@@ -81,7 +81,7 @@ def generate_data(maxinc, maxexc, n_samples=100_000, fprs=None):
 if __name__ == "__main__":
     print("Generating data...")
     start_time = time.time()
-    d = generate_data(1000, 10000, 10000)
+    d = generate_data(1000, 1000, 10000)
     end_time = time.time()
     print(f"Done generating data. Time taken: {end_time - start_time:.2f} seconds")
     
