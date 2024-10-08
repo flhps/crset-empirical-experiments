@@ -1,0 +1,23 @@
+# Data generation configuration
+
+# Job type: Choose between "series" or "classification"
+job_type: "classification"
+
+# Output directory for generated data
+output_directory: "data"
+
+# Parameters for data generation
+maxinc: 100
+maxexc: 100
+n_samples: 1000
+
+# FPR targets (set to null or specify a list of FPRs)
+fprs: null
+
+# Number of workers for concurrent processing
+max_workers: 6
+
+# Padding configuration for deep learning model dataset generation
+# Set to true for constant number of cascades and lengths (suitable for deep learning models)
+# Set to false for raw data without padding
+padding: true
