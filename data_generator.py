@@ -132,24 +132,113 @@ def generate_data(maxinc, maxexc, n_samples, fprs=None, job_type="series"):
 def int_to_bits(integer):
     return format(integer, '08b')
 
-def save_to_csv(data, filename, job_type="series"):
+def find_max_dimensions(data, job_type="series"):
+    """
+    Find the maximum number of cascades and the maximum length of cascades across all samples.
+    """
+    max_cascades = 0
+    max_length = 0
+    
+    if job_type == "series":
+        X, _ = data
+        for sample in X:
+            max_cascades = max(max_cascades, len(sample))
+            for cascade in sample:
+                max_length = max(max_length, len(cascade))
+    elif job_type == "classification":
+        X1, X2, _ = data
+        for sample1, sample2 in zip(X1, X2):
+            max_cascades = max(max_cascades, len(sample1), len(sample2))
+            for cascade in sample1 + sample2:
+                max_length = max(max_length, len(cascade))
+    
+    return max_cascades, max_length
+
+def standardize_dataset(data, max_cascades, max_length, job_type="series", batch_size=1000):
+    """
+    Generator function to standardize the dataset in batches.
+    """
+    if job_type == "series":
+        X, y = data
+    elif job_type == "classification":
+        X1, X2, y = data
+        X = X1 + X2  # Combine X1 and X2 for processing
+
+    total_samples = len(X)
+    for i in range(0, total_samples, batch_size):
+        batch = X[i:i+batch_size]
+        standardized_batch = []
+        for sample in batch:
+            standardized_sample = []
+            for j in range(max_cascades):
+                if j < len(sample):
+                    # Convert bytes to binary string, pad or truncate
+                    binary_str = ''.join(format(byte, '08b') for byte in sample[j])
+                    cascade = binary_str.ljust(max_length, '0')[:max_length]
+                else:
+                    cascade = '0' * max_length
+                standardized_sample.append(cascade)
+            standardized_batch.append(standardized_sample)
+        yield np.array(standardized_batch)
+
+def save_to_csv_with_padding(data, filename, job_type="series", padding=False, batch_size=1000):
+    """
+    Save the data to a CSV file, optionally applying padding.
+    """
+    if padding:
+        max_cascades, max_length = find_max_dimensions(data, job_type)
+        standardized_generator = standardize_dataset(data, max_cascades, max_length, job_type, batch_size)
+    else:
+        if job_type == "series":
+            standardized_generator = (data[0][i:i+batch_size] for i in range(0, len(data[0]), batch_size))
+        elif job_type == "classification":
+            standardized_generator = ((data[0][i:i+batch_size], data[1][i:i+batch_size]) for i in range(0, len(data[0]), batch_size))
+    
     with open(filename, 'w', newline='') as csvfile:
         writer = csv.writer(csvfile, delimiter=';', quoting=csv.QUOTE_NONE, escapechar='\\')
+        
         if job_type == "series":
+            writer.writerow(['concatenated_bitstrings', 'num_included', 'num_excluded'])
             X, y = data
-            for bitstrings, labels in zip(X, y):
-                x_row = ','.join(''.join(int_to_bits(b) for b in bitstring) for bitstring in bitstrings)
-                y_row = f"{int(labels[0])},{int(labels[1])}"
-                writer.writerow([x_row, y_row])
+            sample_index = 0
+            for batch in tqdm(standardized_generator, desc="Processing batches"):
+                for sample in batch:
+                    if sample_index >= len(X):
+                        break
+                    if padding:
+                        concatenated_bitstring = ','.join(sample)
+                    else:
+                        concatenated_bitstring = ','.join(''.join(format(byte, '08b') for byte in cascade) for cascade in X[sample_index])
+                    num_included, num_excluded = y[sample_index]
+                    writer.writerow([concatenated_bitstring, num_included, num_excluded])
+                    sample_index += 1
+        
         elif job_type == "classification":
+            writer.writerow(['concatenated_bitstrings_X1', 'concatenated_bitstrings_X2', 'label'])
             X1, X2, y = data
-            for bitstrings1, bitstrings2, label in zip(X1, X2, y):
-                x1_row = ','.join(''.join(int_to_bits(b) for b in bitstring) for bitstring in bitstrings1)
-                x2_row = ','.join(''.join(int_to_bits(b) for b in bitstring) for bitstring in bitstrings2)
-                y_row = str(int(label[0]))
-                writer.writerow([x1_row, x2_row, y_row])
+            sample_index = 0
+            for batch in tqdm(standardized_generator, desc="Processing batches"):
+                if padding:
+                    batch1, batch2 = batch[:len(batch)//2], batch[len(batch)//2:]
+                else:
+                    batch1, batch2 = batch
+                for sample1, sample2 in zip(batch1, batch2):
+                    if sample_index >= len(X1):
+                        break
+                    if padding:
+                        concatenated_bitstring1 = ','.join(sample1)
+                        concatenated_bitstring2 = ','.join(sample2)
+                    else:
+                        concatenated_bitstring1 = ','.join(''.join(format(byte, '08b') for byte in cascade) for cascade in X1[sample_index])
+                        concatenated_bitstring2 = ','.join(''.join(format(byte, '08b') for byte in cascade) for cascade in X2[sample_index])
+                    label = y[sample_index][0]
+                    writer.writerow([concatenated_bitstring1, concatenated_bitstring2, label])
+                    sample_index += 1
 
 def main():
+    """
+    Main function to generate and save the data.
+    """
     start_time = time.time()
     
     job_type = CONFIG['job_type']
@@ -171,7 +260,8 @@ def main():
     os.makedirs(CONFIG['output_directory'], exist_ok=True)
     fname = os.path.join(CONFIG['output_directory'], f"training-data-{job_type}-{time.time_ns()}.csv")
     print(f"Saving data to {fname}...")
-    save_to_csv(d, fname, job_type=job_type)
+    
+    save_to_csv_with_padding(d, fname, job_type=job_type, padding=CONFIG['padding'], batch_size=1000)
     print("Data saved successfully.")
 
 if __name__ == "__main__":
