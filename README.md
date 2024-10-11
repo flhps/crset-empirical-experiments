@@ -46,4 +46,29 @@ The script will read the configuration, generate the dataset, and save it to a C
 
 
 
+## CSV Output Format
 
+### Series Job Type
+
+Each row contains:
+* Bloom filter cascade bitstrings
+* Number of revocations
+* Number of non-revoked VCs
+
+Example:
+
+```
+00000111000000000000000000000000...,00000111000000000000000000000000...,82,59
+```
+
+### Classification Job Type
+
+Each row contains:
+* Two Bloom filter cascade bitstrings
+* Classification label (1 or -1)
+
+Example:
+
+```
+00000111000000000000000000000000...;00000111000000000000000000000000...;1
+```
