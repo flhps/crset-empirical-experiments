@@ -4,14 +4,14 @@ This script generates datasets for the research paper "Metadata Privacy for Veri
 ## Background
 This tool supports research on revocation mechanisms for Self-Sovereign Identity (SSI) systems. It addresses the challenge of allowing anyone to query the status of a single VC while preventing inference about the wider set of issued or revoked VCs. The generated datasets represent raw data structures and associated metadata for privacy analysis.
 
-### Setup
+## Setup
 Install the required dependencies:
 
 ```
 pip install -r requirements.txt
 ```
 
-### Configuration
+## Configuration
 The script uses a YAML configuration file (config.yaml) to set various parameters. Create this file in the same directory as the script.
 Configuration fields:
 * `job_type`: Determines the mode of operation for the script.
@@ -24,7 +24,7 @@ Configuration fields:
 * `fprs`: False Positive Rate targets. Default is [0.006] if not specified.
 * `max_workers`: Number of workers for concurrent processing.
 * `padding`: Enable (true) or disable (false) padding for consistent data dimensions. When enabled, this brings each sample to the same format for use as input in deep learning models to empirically check privacy guarantees.
-### Usage
+## Usage
 Run the script with:
 
 ```
@@ -32,7 +32,7 @@ python data_generator.py
 ```
 
 The script will read the configuration, generate the dataset, and save it to a CSV file in the specified output directory.
-### Data Generation Process
+## Data Generation Process
 
 1. Data Structure Creation:
 * For "series": Generates individual Bloom filter cascade bitstrings with associated number of revocations and non-revoked VCs.
@@ -47,6 +47,8 @@ The script will read the configuration, generate the dataset, and save it to a C
 
 
 ## CSV Output Format
+
+The generated CSV files will be stored in the `data` directory within the project folder.
 
 ### Series Job Type
 
@@ -72,3 +74,4 @@ Example:
 ```
 00000111000000000000000000000000...;00000111000000000000000000000000...;1
 ```
+
