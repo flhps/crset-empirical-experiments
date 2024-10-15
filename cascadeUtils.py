@@ -8,17 +8,19 @@ def generate_id_set(size):
     # return [random.randint(0, 2**128) for _ in range(size)]
 
 
-def create_padded_cascade(revokedids, validids, revokedmax, validmax, fprs=None):
+def create_padded_cascade(
+    revokedids, validids, revokedmax, validmax, fprs=None, multi_threaded=False
+):
     test_cascade = None
     tries = 0
     while not test_cascade:
         try:
             test_cascade = PaddedCascade(
-                revokedids, validids, revokedmax, validmax, fprs
+                revokedids, validids, revokedmax, validmax, fprs, multi_threaded
             )
-        except Exception:
+        except Exception as e:
             tries = tries + 1
-            print("Trying cascade generation again after it failed.")
+            print("Trying cascade generation again after it failed: %s", e)
             if tries > 5:
                 break
     if not test_cascade:

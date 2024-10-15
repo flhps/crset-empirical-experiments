@@ -1,9 +1,11 @@
+from numpy import var
 from rbloom import Bloom
 import uuid
 from hashlib import sha256
 from pickle import dumps
 import math
 from collections import Counter
+import concurrent.futures
 
 
 def hash_func(obj):
@@ -15,22 +17,34 @@ def new_bloom(size, fpr):
     return Bloom(size, fpr, hash_func)
 
 
+def build_cascade_part(positives, size, fpr, salt):
+    bloom = new_bloom(size, fpr)
+    for elem in positives:
+        bloom.add(str(elem) + salt)
+    return bloom.save_bytes()
+
+
+# making sure code runs on python versions before 3.12
+def batched(lst, n):
+    if n < 1:
+        raise ValueError("n must be at least one")
+    for i in range(0, len(lst), n):
+        yield lst[i : i + n]
+
+
 class FilterCascade:
-    def __init__(self, positives, negatives, fprs=None):
+    def __init__(self, positives, negatives, fprs=None, multi_thread=False):
         if fprs is None:
             fprs = [0.006]
         self.filters = []
         self.salt = str(uuid.uuid4())
-        self.__help_build_cascade(positives, negatives, fprs)
+        self.__help_build_cascade(positives, negatives, fprs, multi_thread)
 
-    def __help_build_cascade(self, positives, negatives, fprs):
-        # print(f"Cascade build level: {len(self.filters)}")
+    def __help_build_cascade(self, positives, negatives, fprs, multi_thread):
         fpr = fprs[-1]
         if len(fprs) > len(self.filters):
             fpr = fprs[len(self.filters)]
-        bloom = new_bloom(math.ceil(1.2 * len(positives)), fpr)
-        for elem in positives:
-            bloom.add(str(elem) + self.salt)
+        bloom = self.__help_build_filter(positives, fpr, multi_thread)
         fps = []
         for elem in negatives:
             if str(elem) + self.salt in bloom:
@@ -40,7 +54,48 @@ class FilterCascade:
             return
         if len(fps) == len(negatives):
             raise Exception("Cascade cannot solve")
-        self.__help_build_cascade(fps, positives, fprs)
+        self.__help_build_cascade(fps, positives, fprs, multi_thread)
+
+    def __help_build_filter(self, positives, fpr, multi_thread):
+        margin_factor = 1.2
+        threads = 6
+        bloom = None
+        if multi_thread and len(positives) > threads * 1000:
+            positive_chunks = list(
+                batched(positives, math.ceil(len(positives) / threads))
+            )
+            with concurrent.futures.ProcessPoolExecutor(
+                max_workers=threads
+            ) as executor:
+                future_to_data = {
+                    executor.submit(
+                        build_cascade_part,
+                        positive_chunks[i],
+                        math.ceil(margin_factor * len(positives)),
+                        fpr,
+                        self.salt,
+                    ): i
+                    for i in range(threads)
+                }
+
+                for future in concurrent.futures.as_completed(future_to_data):
+                    i = future_to_data[future]
+                    try:
+                        data = Bloom.load_bytes(future.result(), hash_func)
+                    except Exception as exc:
+                        print("%r generated an exception: %s" % (i, exc))
+                    else:
+                        if bloom is None:
+                            bloom = data
+                        else:
+                            bloom = bloom.union(data)
+            assert bloom is not None
+            return bloom
+        else:
+            bloom = new_bloom(math.ceil(margin_factor * len(positives)), fpr)
+            for elem in positives:
+                bloom.add(str(elem) + self.salt)
+            return bloom
 
     def __contains__(self, entry):
         for i in range(len(self.filters)):
