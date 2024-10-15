@@ -1,4 +1,3 @@
-from numpy import var
 from rbloom import Bloom
 import uuid
 from hashlib import sha256
@@ -33,18 +32,18 @@ def batched(lst, n):
 
 
 class FilterCascade:
-    def __init__(self, positives, negatives, fprs=None, multi_thread=False):
+    def __init__(self, positives, negatives, fprs=None, multi_process=False):
         if fprs is None:
             fprs = [0.006]
         self.filters = []
         self.salt = str(uuid.uuid4())
-        self.__help_build_cascade(positives, negatives, fprs, multi_thread)
+        self.__help_build_cascade(positives, negatives, fprs, multi_process)
 
-    def __help_build_cascade(self, positives, negatives, fprs, multi_thread):
+    def __help_build_cascade(self, positives, negatives, fprs, multi_process):
         fpr = fprs[-1]
         if len(fprs) > len(self.filters):
             fpr = fprs[len(self.filters)]
-        bloom = self.__help_build_filter(positives, fpr, multi_thread)
+        bloom = self.__help_build_filter(positives, fpr, multi_process)
         fps = []
         for elem in negatives:
             if str(elem) + self.salt in bloom:
@@ -54,18 +53,19 @@ class FilterCascade:
             return
         if len(fps) == len(negatives):
             raise Exception("Cascade cannot solve")
-        self.__help_build_cascade(fps, positives, fprs, multi_thread)
+        self.__help_build_cascade(fps, positives, fprs, multi_process)
 
-    def __help_build_filter(self, positives, fpr, multi_thread):
+    def __help_build_filter(self, positives, fpr, multi_process):
         margin_factor = 1.2
-        threads = 6
+        processes = 8
         bloom = None
-        if multi_thread and len(positives) > threads * 1000:
+        # only worth using multiple processes if every chunk is big enough
+        if multi_process and len(positives) > processes * 100_000:
             positive_chunks = list(
-                batched(positives, math.ceil(len(positives) / threads))
+                batched(positives, math.ceil(len(positives) / processes))
             )
             with concurrent.futures.ProcessPoolExecutor(
-                max_workers=threads
+                max_workers=processes
             ) as executor:
                 future_to_data = {
                     executor.submit(
@@ -75,7 +75,7 @@ class FilterCascade:
                         fpr,
                         self.salt,
                     ): i
-                    for i in range(threads)
+                    for i in range(processes)
                 }
 
                 for future in concurrent.futures.as_completed(future_to_data):

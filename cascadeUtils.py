@@ -9,14 +9,14 @@ def generate_id_set(size):
 
 
 def create_padded_cascade(
-    revokedids, validids, revokedmax, validmax, fprs=None, multi_threaded=False
+    revokedids, validids, revokedmax, validmax, fprs=None, multi_process=False
 ):
     test_cascade = None
     tries = 0
     while not test_cascade:
         try:
             test_cascade = PaddedCascade(
-                revokedids, validids, revokedmax, validmax, fprs, multi_threaded
+                revokedids, validids, revokedmax, validmax, fprs, multi_process
             )
         except Exception as e:
             tries = tries + 1
