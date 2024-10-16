@@ -9,7 +9,7 @@ def generate_id_set(size):
 
 
 def create_padded_cascade(
-    revokedids, validids, revokedmax, validmax, fprs=None, multi_process=False
+    revokedids, validids, revokedmax, validmax, fprs=None, multi_process=False, output_tries=False
 ):
     test_cascade = None
     tries = 0
@@ -27,6 +27,8 @@ def create_padded_cascade(
         raise Exception(
             f"Cascade construction failed repeatedly for {len(revokedids)} inclusions and {len(validids)} exclusions with {fprs} fpr targets"
         )
+    if output_tries:
+        return test_cascade, tries
     return test_cascade
 
 

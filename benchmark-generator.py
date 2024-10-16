@@ -7,7 +7,7 @@ import time
 import os
 import yaml
 from tqdm import tqdm
-from paddedCascade import PaddedCascade
+import cascadeUtils
 
 def load_config(config_file='config.yaml'):
     with open(config_file, 'r') as f:
@@ -27,43 +27,40 @@ def generate_data_series(
     num_excluded: int,
     maxinc,
     maxexc,
-    fprs,
-    margin
+    fprs=None,
 ):
-    test_cascade = None
-    tries = 0
     start_time = time.time()
-    while not test_cascade:
-        try:
-            revoked = [uuid.uuid4() for _ in range(num_included)]
-            valid = [uuid.uuid4() for _ in range(num_excluded)]
-            test_cascade = PaddedCascade(revoked, valid, maxinc, maxexc, fprs, margin)
-        except Exception:
-            tries += 1
-            if tries > 5: # TODO: Change back to 3
-                break
     
-    if not test_cascade:
-        raise Exception(
-            f"Cascade construction failed repeatedly for {num_included} inclusions and {num_excluded} exclusions with {fprs} fpr targets"
-        )
+    revoked = cascadeUtils.generate_id_set(num_included)
+    valid = cascadeUtils.generate_id_set(num_excluded)
+
+    cascade, tries = cascadeUtils.create_padded_cascade(
+        revokedids=revoked,
+        validids=valid,
+        revokedmax=maxinc,
+        validmax=maxexc,
+        fprs=fprs,
+        multi_process=True,
+        output_tries=True
+    )
     
     duration = time.time() - start_time
-    return get_cascade_bitstrings(test_cascade), duration, tries
 
-def rnd_data_point(maxinc, maxexc, fprs, margin):
+    return get_cascade_bitstrings(cascade), duration, tries
+
+def rnd_data_point(maxinc, maxexc, fprs):
     n_included = random.randint(1, maxinc)
     n_excluded = random.randint(1, maxexc)
-    bitstrings, duration, tries = generate_data_series(n_included, n_excluded, maxinc, maxexc, fprs, margin)
+    bitstrings, duration, tries = generate_data_series(n_included, n_excluded, maxinc, maxexc, fprs)
     return bitstrings, [n_included, n_excluded, duration, tries]
 
-def generate_benchmark_data(n_samples, maxinc, maxexc, fprs, margin):
+def generate_benchmark_data(n_samples, maxinc, maxexc, fprs):
     X = []
     y = []
     
     with concurrent.futures.ProcessPoolExecutor(max_workers=CONFIG['max_workers']) as executor:
         future_to_data = {
-            executor.submit(rnd_data_point, maxinc, maxexc, fprs, margin): i
+            executor.submit(rnd_data_point, maxinc, maxexc, fprs): i
             for i in range(n_samples)
         }
         
@@ -93,9 +90,9 @@ def main():
     start_time = time.time()
     
     # Parameter ranges
-    maxinc_maxexc_pairs = [(100_000, 1000)] # [(1000, 100_000), (100_000, 100_000), (100_000, 1000)]
-    margins = np.arange(1.0, 1.26, 0.05).round(2)  # From 1.0 to 1.25 with steps of 0.01 (25 steps)
-    fprs = np.arange(0.10, 1.01, 0.01).round(2)  # From 0.1% to 10% with steps of 0.1% (100 steps)
+    maxinc_maxexc_pairs = [(1000, 1000)] # [(1000, 100_000), (100_000, 100_000), (100_000, 1000)]
+    fprs = np.arange(0.01, 0.99, 0.01).round(2)  # From 0.1% to 10% with steps of 0.1% (100 steps)
+    margins = [1.05]
 
     samples = CONFIG['n_samples']
     
@@ -111,8 +108,7 @@ def main():
                         n_samples=samples,
                         maxinc=maxinc,
                         maxexc=maxexc,
-                        fprs=[fpr],
-                        margin=margin
+                        fprs=[fpr]
                     )
                     all_data.append((d, maxinc, maxexc, margin, fpr))
                     pbar.update(1)

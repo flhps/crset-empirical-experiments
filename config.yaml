@@ -6,8 +6,8 @@ job_type: "classification"
 output_directory: "data"
 
 # Parameters for data generation
-maxinc: 1000
-maxexc: 1000
+maxinc: 10000
+maxexc: 10000
 n_samples: 3 # n cascades umbenenen
 
 # FPR targets (set to null or specify a list of FPRs)
