@@ -16,11 +16,10 @@ def new_bloom(size, fpr):
 
 
 class FilterCascade:
-    def __init__(self, positives, negatives, fprs=None):
-        if fprs is None:
-            fprs = [0.006]
+    def __init__(self, positives, negatives, fprs=[0.006], margin=1.2):  # TODO: verschiedene werte ausprobieren (size optimieren) (0.1% - 2%) (1% - 100%) # TODO: 20% (0%-20%)
         self.filters = []
         self.salt = str(uuid.uuid4())
+        self.margin = margin
         self.__help_build_cascade(positives, negatives, fprs)
 
     def __help_build_cascade(self, positives, negatives, fprs):
@@ -28,7 +27,7 @@ class FilterCascade:
         fpr = fprs[-1]
         if len(fprs) > len(self.filters):
             fpr = fprs[len(self.filters)]
-        bloom = new_bloom(math.ceil(1.2 * len(positives)), fpr)
+        bloom = new_bloom(math.ceil(1.2 * len(positives)), fpr) 
         for elem in positives:
             bloom.add(str(elem) + self.salt)
         fps = []
