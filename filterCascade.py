@@ -4,6 +4,7 @@ from hashlib import sha256
 from pickle import dumps
 import math
 from collections import Counter
+import concurrent.futures
 
 
 def hash_func(obj):
@@ -15,21 +16,40 @@ def new_bloom(size, fpr):
     return Bloom(size, fpr, hash_func)
 
 
-class FilterCascade:
-    def __init__(self, positives, negatives, fprs=[0.006], margin=1.2):  # TODO: verschiedene werte ausprobieren (size optimieren) (0.1% - 2%) (1% - 100%) # TODO: 20% (0%-20%)
-        self.filters = []
-        self.salt = str(uuid.uuid4())
-        self.margin = margin
-        self.__help_build_cascade(positives, negatives, fprs)
+def build_cascade_part(positives, size, fpr, salt):
+    bloom = new_bloom(size, fpr)
+    for elem in positives:
+        bloom.add(str(elem) + salt)
+    return bloom.save_bytes()
 
-    def __help_build_cascade(self, positives, negatives, fprs):
-        # print(f"Cascade build level: {len(self.filters)}")
+
+# making sure code runs on python versions before 3.12
+def batched(lst, n):
+    if n < 1:
+        raise ValueError("n must be at least one")
+    for i in range(0, len(lst), n):
+        yield lst[i : i + n]
+
+
+class FilterCascade:
+    def __init__(self, positives, negatives, fprs=None, multi_process=False):
+        if len(positives) > len(negatives):
+            raise ValueError("Cascade rquires less positives than negatives")
+        if fprs is None:
+            fprs = [min(len(positives) * math.sqrt(0.5) / len(negatives), 0.5), 0.5]
+        self.filters = []
+        self.margin_factor = margin
+        self.salt = str(uuid.uuid4())
+        self.__help_build_cascade(positives, negatives, fprs, multi_process)
+
+    def __help_build_cascade(
+        self, positives, negatives, fprs, multi_process, cons_non_improvements=0
+    ):
         fpr = fprs[-1]
         if len(fprs) > len(self.filters):
             fpr = fprs[len(self.filters)]
-        bloom = new_bloom(math.ceil(1.2 * len(positives)), fpr) 
-        for elem in positives:
-            bloom.add(str(elem) + self.salt)
+        # print("Lvl with %s inc and %s exc" % (len(positives), len(negatives)))
+        bloom = self.__help_build_filter(positives, fpr, multi_process)
         fps = []
         for elem in negatives:
             if str(elem) + self.salt in bloom:
@@ -37,13 +57,62 @@ class FilterCascade:
         self.filters.append(bloom)
         if len(fps) == 0:
             return
-        if len(fps) == len(negatives):
-            raise Exception("Cascade cannot solve")
-        self.__help_build_cascade(fps, positives, fprs)
+        if (
+            len(self.filters) > 1
+            and self.filters[-1].size_in_bits >= self.filters[-2].size_in_bits
+        ):
+            cons_non_improvements += 1
+            if cons_non_improvements > 5:
+                raise Exception("Cascade cannot solve")
+        else:
+            cons_non_improvements = 0
+        self.__help_build_cascade(
+            fps, positives, fprs, multi_process, cons_non_improvements
+        )
+
+    def __help_build_filter(self, positives, fpr, multi_process):
+        margin_factor = 1.0  # seems beneficial to slightly increase to compute faster with no bit size cost
+        new_size = math.ceil(margin_factor * len(positives))
+        ds = str(len(self.filters)) + self.salt
+        processes = 8
+        bloom = None
+        # only worth using multiple processes if every chunk is big enough
+        if multi_process and len(positives) > processes * 100_000:
+            positive_chunks = list(
+                batched(positives, math.ceil(len(positives) / processes))
+            )
+            with concurrent.futures.ProcessPoolExecutor(
+                max_workers=processes
+            ) as executor:
+                future_to_data = {
+                    executor.submit(
+                        build_cascade_part, positive_chunks[i], new_size, fpr, ds
+                    ): i
+                    for i in range(processes)
+                }
+
+                for future in concurrent.futures.as_completed(future_to_data):
+                    i = future_to_data[future]
+                    try:
+                        data = Bloom.load_bytes(future.result(), hash_func)
+                    except Exception as exc:
+                        print("%r generated an exception: %s" % (i, exc))
+                    else:
+                        if bloom is None:
+                            bloom = data
+                        else:
+                            bloom = bloom.union(data)
+            assert bloom is not None
+            return bloom
+        else:
+            bloom = new_bloom(new_size, fpr)
+            for elem in positives:
+                bloom.add(str(elem) + ds)
+            return bloom
 
     def __contains__(self, entry):
         for i in range(len(self.filters)):
-            if str(entry) + self.salt not in self.filters[i]:
+            if str(entry) + str(i) + self.salt not in self.filters[i]:
                 return i % 2 == 1
         return (len(self.filters) - 1) % 2 == 0
 
