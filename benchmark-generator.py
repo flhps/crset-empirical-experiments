@@ -7,7 +7,6 @@ import time
 import os
 import yaml
 from tqdm import tqdm
-import cascadeUtils
 from paddedCascade import PaddedCascade
 
 def load_config(config_file='config.yaml'):

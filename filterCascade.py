@@ -32,13 +32,14 @@ def batched(lst, n):
 
 
 class FilterCascade:
-    def __init__(self, positives, negatives, fprs=None, multi_process=False):
+    def __init__(self, positives, negatives, fprs=None, margin=1.05, multi_process=False):
         if len(positives) > len(negatives):
             raise ValueError("Cascade rquires less positives than negatives")
         if fprs is None:
             fprs = [min(len(positives) * math.sqrt(0.5) / len(negatives), 0.5), 0.5]
+            print(fprs)
         self.filters = []
-        self.margin_factor = margin
+        self.margin = margin
         self.salt = str(uuid.uuid4())
         self.__help_build_cascade(positives, negatives, fprs, multi_process)
 
@@ -71,8 +72,7 @@ class FilterCascade:
         )
 
     def __help_build_filter(self, positives, fpr, multi_process):
-        margin_factor = 1.0  # seems beneficial to slightly increase to compute faster with no bit size cost
-        new_size = math.ceil(margin_factor * len(positives))
+        new_size = math.ceil(self.margin * len(positives))
         ds = str(len(self.filters)) + self.salt
         processes = 8
         bloom = None

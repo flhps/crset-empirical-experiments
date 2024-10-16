@@ -29,30 +29,23 @@ def generate_data_series(
     maxinc,
     maxexc,
     fprs=None,
-    deltainc=100,
-    deltaexc=1000,
-    negdeltainc=False,
 ):
     start_time = time.time()
-    test_cascade = None
-    tries = 0
-    while not test_cascade:
-        try:
-            revoked = [uuid.uuid4() for _ in range(num_included)]
-            valid = [uuid.uuid4() for _ in range(num_excluded)]
-            test_cascade = PaddedCascade(revoked, valid, maxinc, maxexc, fprs)
-        except Exception:
-            tries += 1
-            if tries > 3:
-                break
     
-    if not test_cascade:
-        raise Exception(
-            f"Cascade construction failed repeatedly for {num_included} inclusions and {num_excluded} exclusions with {fprs} fpr targets"
-        )
+    revoked = cascadeUtils.generate_id_set(num_included)
+    valid = cascadeUtils.generate_id_set(num_excluded)
+
+    cascade = cascadeUtils.create_padded_cascade(
+        revokedids=revoked,
+        validids=valid,
+        revokedmax=maxinc,
+        validmax=maxexc,
+        fprs=fprs,
+        multi_process=True,
+    )
     
     duration = time.time() - start_time
-    return get_cascade_bitstrings(test_cascade), duration
+    return get_cascade_bitstrings(cascade), duration
 
 def rnd_data_point(maxinc, maxexc, fprs=None, job_type="series"):
     start_time = time.time()
