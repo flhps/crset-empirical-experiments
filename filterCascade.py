@@ -13,7 +13,7 @@ def hash_func(obj):
 
 
 def new_bloom(size, fpr):
-    return Bloom(size, fpr, hash_func)
+    return Bloom(size, fpr, hash_func, 1)
 
 
 def build_cascade_part(positives, size, fpr, salt):
@@ -32,7 +32,9 @@ def batched(lst, n):
 
 
 class FilterCascade:
-    def __init__(self, positives, negatives, fprs=None, multi_process=False, margin=1.05):
+    def __init__(
+        self, positives, negatives, fprs=None, multi_process=False, margin=1.05
+    ):
         if len(positives) > len(negatives):
             raise ValueError("Cascade rquires less positives than negatives")
         if fprs is None:
