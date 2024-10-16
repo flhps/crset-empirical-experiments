@@ -32,7 +32,7 @@ def batched(lst, n):
 
 
 class FilterCascade:
-    def __init__(self, positives, negatives, fprs=None, margin=1.05, multi_process=False):
+    def __init__(self, positives, negatives, fprs=None, multi_process=False, margin=1.05):
         if len(positives) > len(negatives):
             raise ValueError("Cascade rquires less positives than negatives")
         if fprs is None:

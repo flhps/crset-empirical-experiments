@@ -45,6 +45,7 @@ def generate_data_series(
     )
     
     duration = time.time() - start_time
+
     return get_cascade_bitstrings(cascade), duration
 
 def rnd_data_point(maxinc, maxexc, fprs=None, job_type="series"):
@@ -60,11 +61,11 @@ def rnd_data_point(maxinc, maxexc, fprs=None, job_type="series"):
         revoked = cascadeUtils.generate_id_set(n_included)
         valid = cascadeUtils.generate_id_set(n_excluded)
         cascade = cascadeUtils.create_padded_cascade(
-            revoked, valid, maxinc, maxexc, fprs
+            revoked, valid, maxinc, maxexc, fprs, multi_process=True
         )
         if bool(random.getrandbits(1)):
             same = cascadeUtils.create_padded_cascade(
-                revoked, valid, maxinc, maxexc, fprs
+                revoked, valid, maxinc, maxexc, fprs, multi_process=True
             )
             duration = time.time() - start_time
             return (
@@ -81,6 +82,7 @@ def rnd_data_point(maxinc, maxexc, fprs=None, job_type="series"):
             maxinc,
             maxexc,
             fprs,
+            multi_process=True
         )
         duration = time.time() - start_time
         return (

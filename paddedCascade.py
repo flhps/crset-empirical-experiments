@@ -4,7 +4,7 @@ from filterCascade import FilterCascade
 
 class PaddedCascade(FilterCascade):
     def __init__(
-        self, positives, negatives, targetpos, targetneg, fprs=None, margin=1.05, multi_process=False
+        self, positives, negatives, targetpos, targetneg, fprs=None, multi_process=False, margin=1.05
     ):
         assert len(positives) <= targetpos
         assert len(negatives) <= targetneg
