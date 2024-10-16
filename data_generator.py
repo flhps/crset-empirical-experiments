@@ -33,6 +33,7 @@ def generate_data_series(
     deltaexc=1000,
     negdeltainc=False,
 ):
+    start_time = time.time()
     test_cascade = None
     tries = 0
     while not test_cascade:
@@ -50,16 +51,16 @@ def generate_data_series(
             f"Cascade construction failed repeatedly for {num_included} inclusions and {num_excluded} exclusions with {fprs} fpr targets"
         )
     
-    return get_cascade_bitstrings(test_cascade)
+    duration = time.time() - start_time
+    return get_cascade_bitstrings(test_cascade), duration
 
 def rnd_data_point(maxinc, maxexc, fprs=None, job_type="series"):
+    start_time = time.time()
     if job_type == "series":
         n_included = random.randint(1, maxinc)
         n_excluded = random.randint(1, maxexc)
-        return generate_data_series(n_included, n_excluded, maxinc, maxexc, fprs), [
-            n_included,
-            n_excluded,
-        ]
+        bitstrings, duration = generate_data_series(n_included, n_excluded, maxinc, maxexc, fprs)
+        return bitstrings, [n_included, n_excluded, duration]
     elif job_type == "classification":
         n_included = random.randint(0, maxinc - 1)
         n_excluded = random.randint(1, maxexc)
@@ -72,10 +73,11 @@ def rnd_data_point(maxinc, maxexc, fprs=None, job_type="series"):
             same = cascadeUtils.create_padded_cascade(
                 revoked, valid, maxinc, maxexc, fprs
             )
+            duration = time.time() - start_time
             return (
                 get_cascade_bitstrings(cascade),
                 get_cascade_bitstrings(same),
-                [1],
+                [1, duration],
             )
         delta = random.sample(valid, random.randint(1, min(maxinc - n_included, len(valid))))
         revoked2 = revoked + delta
@@ -87,19 +89,20 @@ def rnd_data_point(maxinc, maxexc, fprs=None, job_type="series"):
             maxexc,
             fprs,
         )
+        duration = time.time() - start_time
         return (
             get_cascade_bitstrings(cascade),
             get_cascade_bitstrings(different),
-            [-1],
+            [-1, duration],
         )
 
 def generate_data(maxinc, maxexc, n_samples, fprs=None, job_type="series"):
     if job_type == "series":
         X = []
-        y = np.empty([n_samples, 2])
+        y = np.empty([n_samples, 3])  # Added one more column for duration
     elif job_type == "classification":
         X1, X2 = [], []
-        y = np.empty([n_samples, 1])
+        y = np.empty([n_samples, 2])  # Added one more column for duration
     
     with concurrent.futures.ProcessPoolExecutor(max_workers=CONFIG['max_workers']) as executor:
         future_to_data = {
@@ -198,7 +201,7 @@ def save_to_csv_with_padding(data, filename, job_type="series", padding=False, b
         writer = csv.writer(csvfile, delimiter=';', quoting=csv.QUOTE_NONE, escapechar='\\')
         
         if job_type == "series":
-            writer.writerow(['concatenated_bitstrings', 'num_included', 'num_excluded'])
+            writer.writerow(['concatenated_bitstrings', 'num_included', 'num_excluded', 'duration'])
             X, y = data
             sample_index = 0
             for batch in tqdm(standardized_generator, desc="Processing batches"):
@@ -209,12 +212,12 @@ def save_to_csv_with_padding(data, filename, job_type="series", padding=False, b
                         concatenated_bitstring = ','.join(sample)
                     else:
                         concatenated_bitstring = ','.join(''.join(format(byte, '08b') for byte in cascade) for cascade in X[sample_index])
-                    num_included, num_excluded = y[sample_index]
-                    writer.writerow([concatenated_bitstring, num_included, num_excluded])
+                    num_included, num_excluded, duration = y[sample_index]
+                    writer.writerow([concatenated_bitstring, num_included, num_excluded, duration])
                     sample_index += 1
         
         elif job_type == "classification":
-            writer.writerow(['concatenated_bitstrings_X1', 'concatenated_bitstrings_X2', 'label'])
+            writer.writerow(['concatenated_bitstrings_X1', 'concatenated_bitstrings_X2', 'label', 'duration'])
             X1, X2, y = data
             sample_index = 0
             for batch in tqdm(standardized_generator, desc="Processing batches"):
@@ -231,21 +234,17 @@ def save_to_csv_with_padding(data, filename, job_type="series", padding=False, b
                     else:
                         concatenated_bitstring1 = ','.join(''.join(format(byte, '08b') for byte in cascade) for cascade in X1[sample_index])
                         concatenated_bitstring2 = ','.join(''.join(format(byte, '08b') for byte in cascade) for cascade in X2[sample_index])
-                    label = y[sample_index][0]
-                    writer.writerow([concatenated_bitstring1, concatenated_bitstring2, label])
+                    label, duration = y[sample_index]
+                    writer.writerow([concatenated_bitstring1, concatenated_bitstring2, label, duration])
                     sample_index += 1
 
-def main():
-    """
-    Main function to generate and save the data.
-    """
-    start_time = time.time()
-    
+def main():    
     job_type = CONFIG['job_type']
     if job_type not in ["series", "classification"]:
         raise ValueError("Invalid job_type in config. Must be 'series' or 'classification'.")
 
     print(f"Generating {job_type} data...")
+    start_time = time.time()
     d = generate_data(
         CONFIG['maxinc'], 
         CONFIG['maxexc'], 
@@ -253,8 +252,8 @@ def main():
         fprs=CONFIG['fprs'], 
         job_type=job_type
     )
-
     end_time = time.time()
+
     print(f"Done generating data. Time taken: {end_time - start_time:.2f} seconds")
     
     os.makedirs(CONFIG['output_directory'], exist_ok=True)
