@@ -1,0 +1,21 @@
+sequence:
+  - type: cascadeTest
+    repeat: 2
+    params:
+      r: 100000
+      s: 100000
+      parallelize: false
+  - type: cascadeTest
+    repeat: 2
+    params:
+      r: 100000
+      s: 100000
+      parallelize: true
+  - type: benchmarkPaddedCascade
+    params:
+      n: [100, 1000, 100]
+      nmax: 1000
+      fpra: 0.7
+      fprb: 0.5
+      k: 1
+      samples: 3

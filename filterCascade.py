@@ -1,5 +1,5 @@
 from rbloom import Bloom
-import uuid
+import secrets
 from hashlib import sha256
 from pickle import dumps
 import math
@@ -13,7 +13,7 @@ def hash_func(obj):
 
 
 def new_bloom(size, fpr):
-    return Bloom(size, fpr, hash_func, 1)
+    return Bloom(size, fpr, hash_func)
 
 
 def build_cascade_part(positives, size, fpr, salt):
@@ -39,10 +39,9 @@ class FilterCascade:
             raise ValueError("Cascade rquires less positives than negatives")
         if fprs is None:
             fprs = [min(len(positives) * math.sqrt(0.5) / len(negatives), 0.5), 0.5]
-            print(fprs)
         self.filters = []
         self.margin = margin
-        self.salt = str(uuid.uuid4())
+        self.salt = str(secrets.randbits(256))
         self.__help_build_cascade(positives, negatives, fprs, multi_process)
 
     def __help_build_cascade(
@@ -54,8 +53,9 @@ class FilterCascade:
         # print("Lvl with %s inc and %s exc" % (len(positives), len(negatives)))
         bloom = self.__help_build_filter(positives, fpr, multi_process)
         fps = []
+        ds = str(len(self.filters)) + self.salt
         for elem in negatives:
-            if str(elem) + self.salt in bloom:
+            if str(elem) + ds in bloom:
                 fps.append(elem)
         self.filters.append(bloom)
         if len(fps) == 0:
@@ -103,7 +103,7 @@ class FilterCascade:
                         if bloom is None:
                             bloom = data
                         else:
-                            bloom = bloom.union(data)
+                            bloom.update(data)
             assert bloom is not None
             return bloom
         else:

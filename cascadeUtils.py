@@ -1,15 +1,21 @@
 import uuid
 from paddedCascade import PaddedCascade
 import random
+import secrets
 
 
 def generate_id_set(size):
-    return [uuid.uuid4() for _ in range(size)]
-    # return [random.randint(0, 2**128) for _ in range(size)]
+    return [secrets.randbits(256) for _ in range(size)]
 
 
 def create_padded_cascade(
-    revokedids, validids, revokedmax, validmax, fprs=None, multi_process=False, output_tries=False
+    revokedids,
+    validids,
+    revokedmax,
+    validmax,
+    fprs=None,
+    multi_process=False,
+    output_tries=False,
 ):
     test_cascade = None
     tries = 0
