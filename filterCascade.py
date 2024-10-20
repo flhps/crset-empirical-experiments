@@ -12,12 +12,14 @@ def hash_func(obj):
     return int.from_bytes(h[:16], "big") - 2**127
 
 
-def new_bloom(size, fpr):
-    return Bloom(size, fpr, hash_func)
+def new_bloom(size, fpr, k):
+    if k is None:
+        return Bloom(size, fpr, hash_func)
+    return Bloom(size, fpr, hash_func, k)
 
 
-def build_cascade_part(positives, size, fpr, salt):
-    bloom = new_bloom(size, fpr)
+def build_cascade_part(positives, size, fpr, k, salt):
+    bloom = new_bloom(size, fpr, k)
     for elem in positives:
         bloom.add(str(elem) + salt)
     return bloom.save_bytes()
@@ -32,26 +34,23 @@ def batched(lst, n):
 
 
 class FilterCascade:
-    def __init__(
-        self, positives, negatives, fprs=None, multi_process=False, margin=1.05
-    ):
+    def __init__(self, positives, negatives, fprs=None, k=None, multi_process=False):
         if len(positives) > len(negatives):
             raise ValueError("Cascade rquires less positives than negatives")
         if fprs is None:
             fprs = [min(len(positives) * math.sqrt(0.5) / len(negatives), 0.5), 0.5]
         self.filters = []
-        self.margin = margin
         self.salt = str(secrets.randbits(256))
-        self.__help_build_cascade(positives, negatives, fprs, multi_process)
+        self.__help_build_cascade(positives, negatives, fprs, k, multi_process)
 
     def __help_build_cascade(
-        self, positives, negatives, fprs, multi_process, cons_non_improvements=0
+        self, positives, negatives, fprs, k, multi_process, cons_non_improvements=0
     ):
         fpr = fprs[-1]
         if len(fprs) > len(self.filters):
             fpr = fprs[len(self.filters)]
         # print("Lvl with %s inc and %s exc" % (len(positives), len(negatives)))
-        bloom = self.__help_build_filter(positives, fpr, multi_process)
+        bloom = self.__help_build_filter(positives, fpr, k, multi_process)
         fps = []
         ds = str(len(self.filters)) + self.salt
         for elem in negatives:
@@ -70,11 +69,11 @@ class FilterCascade:
         else:
             cons_non_improvements = 0
         self.__help_build_cascade(
-            fps, positives, fprs, multi_process, cons_non_improvements
+            fps, positives, fprs, k, multi_process, cons_non_improvements
         )
 
-    def __help_build_filter(self, positives, fpr, multi_process):
-        new_size = math.ceil(self.margin * len(positives))
+    def __help_build_filter(self, positives, fpr, k, multi_process):
+        new_size = len(positives)
         ds = str(len(self.filters)) + self.salt
         processes = 8
         bloom = None
@@ -88,7 +87,7 @@ class FilterCascade:
             ) as executor:
                 future_to_data = {
                     executor.submit(
-                        build_cascade_part, positive_chunks[i], new_size, fpr, ds
+                        build_cascade_part, positive_chunks[i], new_size, fpr, k, ds
                     ): i
                     for i in range(processes)
                 }
@@ -107,7 +106,7 @@ class FilterCascade:
             assert bloom is not None
             return bloom
         else:
-            bloom = new_bloom(new_size, fpr)
+            bloom = new_bloom(new_size, fpr, k)
             for elem in positives:
                 bloom.add(str(elem) + ds)
             return bloom

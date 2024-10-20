@@ -13,7 +13,7 @@ def time_one_filter_cascade(incl, excl, multi_process):
         valid,
         incl,
         excl,
-        fprs=[min(incl * math.sqrt(0.5) / excl, 0.5), 0.5],
+        fprs=[incl * math.sqrt(0.5) / excl, 0.5],
         multi_process=multi_process,
     )
     print(
@@ -24,5 +24,6 @@ def time_one_filter_cascade(incl, excl, multi_process):
 
 
 if __name__ == "__main__":
-    time_one_filter_cascade(10000000, 10000000, False)
-    time_one_filter_cascade(10000000, 10000000, True)
+    # time_one_filter_cascade(10000000, 10000000, False)
+    # time_one_filter_cascade(10000000, 20000000, True)
+    time_one_filter_cascade(9000000, 18000000, True)

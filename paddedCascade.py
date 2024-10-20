@@ -10,8 +10,8 @@ class PaddedCascade(FilterCascade):
         targetpos,
         targetneg,
         fprs=None,
+        k=None,
         multi_process=False,
-        margin=1.05,
     ):
         assert len(positives) <= targetpos
         assert len(negatives) <= targetneg
@@ -20,4 +20,4 @@ class PaddedCascade(FilterCascade):
         padpos += [u for u in positives]
         padneg = [secrets.randbits(256) for _ in range(targetneg - len(negatives))]
         padneg += [u for u in negatives]
-        super().__init__(padpos, padneg, fprs, multi_process, margin)
+        super().__init__(padpos, padneg, fprs, k, multi_process)

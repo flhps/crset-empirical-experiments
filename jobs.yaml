@@ -11,11 +11,37 @@ sequence:
       r: 100000
       s: 100000
       parallelize: true
+  # - type: benchmarkPaddedCascade
+  #   # based on 10k with equal r and s assuming standardized 10% revocation
+  #   params:
+  #     r: 11111
+  #     s: 11111
+  #     rmax: 11111
+  #     smax: 11111
+  #     fpra: [0.02, 0.5, 0.02]
+  #     fprb: [0.02, 0.5, 0.02]
+  #     k: [1, 2, 1]
+  #     samples: 3
+  # - type: benchmarkPaddedCascade
+  #   # based on 10k with an assumed worst case revocation of 50% (r and s swapped)
+  #   params:
+  #     r: 10000
+  #     s: 20000
+  #     rmax: 10000
+  #     smax: 20000
+  #     fpra: [0.02, 0.8, 0.02]
+  #     fprb: [0.02, 0.8, 0.02]
+  #     k: [1, 2, 1]
+  #     samples: 3
   - type: benchmarkPaddedCascade
+    # based on 10k with an assumed worst case revocation of 50% (r and s swapped)
+    # testing just k for the best option
     params:
-      n: [100, 1000, 100]
-      nmax: 1000
-      fpra: 0.7
+      r: 10000000
+      s: 20000000
+      rmax: 10000000
+      smax: 20000000
+      fpra: 0.3535
       fprb: 0.5
       k: 1
       samples: 3
