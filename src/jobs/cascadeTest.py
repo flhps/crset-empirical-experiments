@@ -1,25 +1,26 @@
-import cascadeUtils
+import src.cascade.cascadeUtils as cu
 
 
 def run(params):
     r = params["r"]
     s = params["s"]
+    rhat = params["rhat"]
     parallelize = params["parallelize"]
-    rset = cascadeUtils.generate_id_set(r)
-    sset = cascadeUtils.generate_id_set(s)
 
-    cascade = cascadeUtils.create_padded_cascade(
-        rset,
-        sset,
-        len(rset),
-        len(sset),
+    validIds = cu.gen_ids(r)
+    revokedIds = cu.gen_ids_wo_overlap(s, validIds)
+
+    cascade = cu.try_cascade(
+        validIds,
+        revokedIds,
+        rhat,
         multi_process=parallelize,
-    )
+    )[0]
 
-    for elem in rset:
+    for elem in validIds:
         if elem not in cascade:
             return {"message": "Failed to confirm expected member"}
-    for elem in sset:
+    for elem in revokedIds:
         if elem in cascade:
             return {"message": "Failed to confirm expected exclusion"}
 

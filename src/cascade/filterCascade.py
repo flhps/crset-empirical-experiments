@@ -38,39 +38,37 @@ class FilterCascade:
         if len(positives) > len(negatives):
             raise ValueError("Cascade rquires less positives than negatives")
         if fprs is None:
-            fprs = [min(len(positives) * math.sqrt(0.5) / len(negatives), 0.5), 0.5]
+            fprs = [len(positives) * math.sqrt(0.5) / len(negatives), 0.5]
         self.filters = []
         self.salt = str(secrets.randbits(256))
-        self.__help_build_cascade(positives, negatives, fprs, k, multi_process)
+        self.__build_cascade(positives, negatives, fprs, k, multi_process)
 
-    def __help_build_cascade(
-        self, positives, negatives, fprs, k, multi_process, cons_non_improvements=0
-    ):
-        fpr = fprs[-1]
-        if len(fprs) > len(self.filters):
-            fpr = fprs[len(self.filters)]
-        # print("Lvl with %s inc and %s exc" % (len(positives), len(negatives)))
-        bloom = self.__help_build_filter(positives, fpr, k, multi_process)
-        fps = []
-        ds = str(len(self.filters)) + self.salt
-        for elem in negatives:
-            if str(elem) + ds in bloom:
-                fps.append(elem)
-        self.filters.append(bloom)
-        if len(fps) == 0:
-            return
-        if (
-            len(self.filters) > 1
-            and self.filters[-1].size_in_bits >= self.filters[-2].size_in_bits
-        ):
-            cons_non_improvements += 1
-            if cons_non_improvements > 5:
-                raise Exception("Cascade cannot solve")
-        else:
-            cons_non_improvements = 0
-        self.__help_build_cascade(
-            fps, positives, fprs, k, multi_process, cons_non_improvements
-        )
+    def __build_cascade(self, positives, negatives, fprs, k, multi_process):
+        inclusions = positives
+        exclusions = negatives
+        cons_non_improvements = 0
+        while len(inclusions) > 0:
+            fpr = fprs[-1]
+            if len(fprs) > len(self.filters):
+                fpr = fprs[len(self.filters)]
+            bloom = self.__help_build_filter(inclusions, fpr, k, multi_process)
+            fps = set()
+            ds = str(len(self.filters)) + self.salt
+            for elem in exclusions:
+                if str(elem) + ds in bloom:
+                    fps.add(elem)
+            self.filters.append(bloom)
+            if (
+                len(self.filters) > 1
+                and self.filters[-1].size_in_bits >= self.filters[-2].size_in_bits
+            ):
+                cons_non_improvements += 1
+                if cons_non_improvements > 5:
+                    raise Exception("Cascade cannot solve")
+            else:
+                cons_non_improvements = 0
+            exclusions = inclusions
+            inclusions = fps
 
     def __help_build_filter(self, positives, fpr, k, multi_process):
         new_size = len(positives)

@@ -1,11 +1,11 @@
 import yaml
-import jobs.cascadeTest
-import jobs.benchmarkPaddedCascade
+import src.jobs.cascadeTest
+import src.jobs.benchStatusCascade
 
 
 JOB_DICT = {
-    "cascadeTest": jobs.cascadeTest.run,
-    "benchmarkPaddedCascade": jobs.benchmarkPaddedCascade.run,
+    "cascadeTest": src.jobs.cascadeTest.run,
+    "benchStatusCascade": src.jobs.benchStatusCascade.run,
 }
 
 
