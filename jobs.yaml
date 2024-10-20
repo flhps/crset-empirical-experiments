@@ -14,22 +14,12 @@ sequence:
       rhat: 50000
       parallelize: true
   - type: benchStatusCascade
-    # parameterization test for small rhat
+    # parameterization test
     params:
-      name: "smallRvaryP"
-      r: 10000
-      s: 20000
-      rhat: 10000
-      p: [0.02, 0.6, 0.02]
-      k: 1
-      samples: 4
-  - type: benchStatusCascade
-    # parameterization test for small rhat
-    params:
-      name: "bigRvaryP"
-      r: 1000000
-      s: 2000000
-      rhat: 1000000
+      name: "varyRhatAndP"
+      r: 20000
+      s: 40000
+      rhat: [20000, 1000000, 20000]
       p: [0.02, 0.6, 0.02]
       k: 1
       samples: 3
