@@ -6,23 +6,23 @@ sequence:
       s: 100000
       rhat: 100000
       parallelize: false
-  - type: cascadeTest
-    # sanity test
-    params:
-      r: 50000
-      s: 100000
-      rhat: 50000
-      parallelize: true
-  - type: benchStatusCascade
-    # parameterization test
-    params:
-      name: "varyRhatAndP"
-      r: 20000
-      s: 40000
-      rhat: [20000, 1000000, 20000]
-      p: [0.02, 0.6, 0.02]
-      k: 1
-      samples: 3
+#  - type: cascadeTest
+#    # sanity test
+#    params:
+#      r: 50000
+#      s: 100000
+#      rhat: 50000
+#      parallelize: true
+#  - type: benchStatusCascade
+#    # parameterization test
+#    params:
+#      name: "varyRhatAndP"
+#      r: 20000
+#      s: 40000
+#      rhat: [20000, 1000000, 20000]
+#      p: [0.02, 0.6, 0.02]
+#      k: 1
+#      samples: 3
   - type: datasetGeneration
     params:
       r: 50000
