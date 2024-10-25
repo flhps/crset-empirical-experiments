@@ -23,3 +23,17 @@ sequence:
       p: [0.02, 0.6, 0.02]
       k: 1
       samples: 3
+  - type: datasetGeneration
+    params:
+      r: 50000
+      s: 100000
+      rhat: 100000
+      p: [0.5, 0.4]
+      k: 1
+      samples: 3
+      rPadding: true
+      classification: false
+      collectRuntime: true
+      parallelize: false
+      formatPadding: true
+      outputDirectory: "data"

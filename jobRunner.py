@@ -1,11 +1,13 @@
 import yaml
 import src.jobs.cascadeTest
 import src.jobs.benchStatusCascade
+import src.jobs.datasetGeneration
 
 
 JOB_DICT = {
     "cascadeTest": src.jobs.cascadeTest.run,
     "benchStatusCascade": src.jobs.benchStatusCascade.run,
+    "datasetGeneration": src.jobs.datasetGeneration.run,
 }
 
 
@@ -45,4 +47,4 @@ if __name__ == "__main__":
         run_fun = JOB_DICT[job_type]
         result = run_fun(job["params"])
         print(result["message"])
-        # todo save a csv with all the values?
+        # todo save a csv with all the values? Would do it in the respecitve jobs and only return a dict indicating metadata + success or failure
