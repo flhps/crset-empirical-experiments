@@ -1,11 +1,11 @@
 sequence:
-  - type: cascadeTest
-    # sanity test
-    params:
-      r: 100000
-      s: 100000
-      rhat: 100000
-      parallelize: false
+#  - type: cascadeTest
+#    # sanity test
+#    params:
+#      r: 100000
+#      s: 100000
+#      rhat: 100000
+#      parallelize: false
 #  - type: cascadeTest
 #    # sanity test
 #    params:
@@ -25,15 +25,16 @@ sequence:
 #      samples: 3
   - type: datasetGeneration
     params:
-      r: 50000
-      s: 100000
-      rhat: 100000
+      r: 50
+      s: 100
+      rhat: 100
       p: [0.5, 0.4]
       k: 1
-      samples: 3
+      samples: 10
       rPadding: true
       classification: false
       collectRuntime: true
       parallelize: false
       formatPadding: true
       outputDirectory: "data"
+      remove_header_bits: true 

@@ -6,7 +6,7 @@ import time
 import os
 import yaml
 from tqdm import tqdm
-import cascadeUtils
+import src.cascade.cascadeUtils as cascadeUtils
 
 
 def load_config(config_file="config.yaml"):

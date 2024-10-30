@@ -5,7 +5,6 @@ import time
 import os
 import numpy as np
 from tqdm import tqdm
-import random
 
 def get_cascade_bitstrings(cascade):
     """Extract bitstrings from cascade filters."""
@@ -72,6 +71,30 @@ def generate_dataset_parallel(params, n_samples):
     
     return X, y
 
+def process_cascade_bitstrings(X, remove_header_bits=False):
+    """
+    Process cascade bitstrings with optional header bit removal.
+    
+    Args:
+        X: List of cascade bitstrings (bytes)
+        remove_header_bits (bool): If True, removes first 64 bits from each cascade
+    
+    Returns:
+        List of processed bitstrings
+    """
+    processed_X = []
+    for bitstrings in X:
+        # Process each cascade in the sample
+        processed_cascades = []
+        for cascade in bitstrings:
+            # Convert bytes to bitstring
+            bitstring = ''.join(format(byte, '08b') for byte in cascade)
+            if remove_header_bits:
+                bitstring = bitstring[64:]  # Remove first 64 bits if requested
+            processed_cascades.append(bitstring)
+        processed_X.append(processed_cascades)
+    return processed_X
+
 def save_to_csv(X, y, filename):
     """Save generated data to CSV file."""
     with open(filename, 'w', newline='') as csvfile:
@@ -79,10 +102,7 @@ def save_to_csv(X, y, filename):
         writer.writerow(['concatenated_bitstrings', 'num_included', 'num_excluded', 'duration'])
         
         for bitstrings, metadata in zip(X, y):
-            concatenated_bitstring = ','.join(
-                ''.join(format(byte, '08b') for byte in cascade) 
-                for cascade in bitstrings
-            )
+            concatenated_bitstring = ','.join(bitstrings)
             writer.writerow([
                 concatenated_bitstring,
                 int(metadata[0]),  # num_included (r)
@@ -107,6 +127,7 @@ def run(params):
             - parallelize (bool): Whether to parallelize computation
             - formatPadding (bool): Whether to pad format
             - outputDirectory (str): Directory to save output
+            - remove_header_bits (bool): Whether to remove first 64 bits from bitstrings
     
     Returns:
         dict: Message indicating success or failure
@@ -122,12 +143,15 @@ def run(params):
         
         X, y = generate_dataset_parallel(params, params['samples'])
         
+        # Process bitstrings
+        X_processed = process_cascade_bitstrings(X, params.get("remove_header_bits", False))
+        
         # Save to CSV
         output_file = os.path.join(
             output_dir, 
             f"training-data-series-{int(time.time_ns())}.csv"
         )
-        save_to_csv(X, y, output_file)
+        save_to_csv(X_processed, y, output_file)
         
         end_time = time.time()
         
