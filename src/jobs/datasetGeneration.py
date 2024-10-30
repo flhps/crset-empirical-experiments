@@ -40,15 +40,15 @@ def generate_cascade_pair_datapoint(params, identical=True):
     start_time = time.time()
     
     # Parameters
-    r = random.randint(0, params["r"] - 1)  # number of valid IDs
-    s = random.randint(1, params["s"])      # number of revoked IDs
+    r = random.randint(0, params["r"] - 1)
+    s = random.randint(1, params["s"])
     rhat = params["rhat"]
     p = params["p"][0]
     k = params["k"]
     
-    # Generate initial valid and revoked sets
-    valid_ids = cu.gen_ids(r)
-    revoked_ids = cu.gen_ids_wo_overlap(s, valid_ids)
+    # Generate initial sets
+    valid_ids = cu.gen_ids(r)  # This returns a set
+    revoked_ids = cu.gen_ids_wo_overlap(s, valid_ids)  # This returns a set
     
     # Generate first cascade
     cascade1, tries1 = cu.try_cascade(
@@ -71,12 +71,16 @@ def generate_cascade_pair_datapoint(params, identical=True):
             multi_process=params["parallelize"]
         )
     else:
-        # For different pairs, modify sets using delta sampling
-        delta = random.sample(valid_ids, random.randint(1, min(rhat - r, len(valid_ids))))
+        # Convert set to list before sampling
+        valid_ids_list = list(valid_ids)
+        delta = random.sample(
+            valid_ids_list,
+            random.randint(1, min(rhat - r, len(valid_ids_list)))
+        )
         
-        # Create modified valid and revoked sets
-        valid_ids2 = [x for x in valid_ids if x not in delta]
-        revoked_ids2 = revoked_ids + delta
+        # Create modified sets
+        valid_ids2 = set(x for x in valid_ids if x not in delta)
+        revoked_ids2 = set(list(revoked_ids) + delta)
         
         # Generate second cascade with modified sets
         cascade2, tries2 = cu.try_cascade(
