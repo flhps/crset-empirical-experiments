@@ -25,9 +25,9 @@ sequence:
 #      samples: 3
   - type: datasetGeneration
     params:
-      r: 50
-      s: 100
-      rhat: 100
+      r: 500
+      s: 1000
+      rhat: 1000
       p: [0.5, 0.4]
       k: 1
       samples: 10
@@ -36,4 +36,4 @@ sequence:
       parallelize: false
       outputDirectory: "data"
       remove_header_bits: true
-      padding: false  # control padding behavior
+      padding: true  # control padding behavior

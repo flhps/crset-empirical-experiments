@@ -167,18 +167,22 @@ def process_cascade_bitstrings(X, remove_header_bits=False, padding=False):
         return processed_X
     
     # If padding is enabled, proceed with padding logic
-    max_lengths = {0: [], 1: []}  # Initialize for both cascades in pairs mode
+    max_lengths = {0: []}  # Initialize for single mode by default
     max_filters = 0
     
-    # Find max number of filters and initialize max_lengths arrays
+    # Find max number of filters
     for sample in X:
         if isinstance(sample[0], list):  # Pairs mode
+            max_lengths[1] = []  # Add second cascade for pairs mode
             for cascade_set in sample:
                 max_filters = max(max_filters, len(cascade_set))
+        else:  # Single mode
+            max_filters = max(max_filters, len(sample))
     
     # Initialize max_lengths arrays with zeros
     max_lengths[0] = [0] * max_filters
-    max_lengths[1] = [0] * max_filters
+    if len(max_lengths) > 1:  # For pairs mode
+        max_lengths[1] = [0] * max_filters
     
     # Find maximum lengths for each position
     for sample in X:
@@ -192,6 +196,15 @@ def process_cascade_bitstrings(X, remove_header_bits=False, padding=False):
                         max_lengths[cascade_idx][filter_idx],
                         len(bitstring)
                     )
+        else:  # Single mode
+            for filter_idx, cascade in enumerate(sample):
+                bitstring = ''.join(format(byte, '08b') for byte in cascade)
+                if remove_header_bits:
+                    bitstring = bitstring[64:]
+                max_lengths[0][filter_idx] = max(
+                    max_lengths[0][filter_idx],
+                    len(bitstring)
+                )
     
     # Process and pad bitstrings
     for sample in X:
@@ -217,6 +230,7 @@ def process_cascade_bitstrings(X, remove_header_bits=False, padding=False):
         
         else:  # Single mode
             processed_cascades = []
+            # Process existing filters
             for filter_idx, cascade in enumerate(sample):
                 bitstring = ''.join(format(byte, '08b') for byte in cascade)
                 if remove_header_bits:
@@ -224,6 +238,7 @@ def process_cascade_bitstrings(X, remove_header_bits=False, padding=False):
                 padded_bitstring = bitstring.ljust(max_lengths[0][filter_idx], '0')
                 processed_cascades.append(padded_bitstring)
             
+            # Add missing filters as all zeros
             while len(processed_cascades) < max_filters:
                 missing_idx = len(processed_cascades)
                 processed_cascades.append('0' * max_lengths[0][missing_idx])
