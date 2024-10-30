@@ -15,6 +15,7 @@ def get_cascade_bitstrings(cascade):
         bitstrings.append(bitstring)
     return bitstrings
 
+
 def generate_single_cascade_datapoint(r, s, rhat, p, k, parallelize):
     """Generate a single cascade datapoint."""
     start_time = time.time()
@@ -138,28 +139,77 @@ def generate_pairs_dataset(params, n_samples):
     return X, y
 
 def process_cascade_bitstrings(X, remove_header_bits=False):
-    """Process cascade bitstrings with optional header bit removal."""
+    """Process cascade bitstrings with optional header bit removal and padding."""
     processed_X = []
+    
+    # First pass: find maximum lengths for each filter position and max number of filters
+    max_lengths = {0: [], 1: []}  # Initialize for both cascades in pairs mode
+    max_filters = 0
+    
+    # Find max number of filters and initialize max_lengths arrays
     for sample in X:
-        if isinstance(sample[0], list):  # Pairs mode (pair of cascades)
-            processed_sample = []
+        if isinstance(sample[0], list):  # Pairs mode
             for cascade_set in sample:
-                processed_cascades = []
-                for cascade in cascade_set:
+                max_filters = max(max_filters, len(cascade_set))
+    
+    # Initialize max_lengths arrays with zeros
+    max_lengths[0] = [0] * max_filters
+    max_lengths[1] = [0] * max_filters
+    
+    # Find maximum lengths for each position
+    for sample in X:
+        if isinstance(sample[0], list):  # Pairs mode
+            for cascade_idx, cascade_set in enumerate(sample):
+                for filter_idx, cascade in enumerate(cascade_set):
                     bitstring = ''.join(format(byte, '08b') for byte in cascade)
                     if remove_header_bits:
                         bitstring = bitstring[64:]
-                    processed_cascades.append(bitstring)
+                    max_lengths[cascade_idx][filter_idx] = max(
+                        max_lengths[cascade_idx][filter_idx],
+                        len(bitstring)
+                    )
+    
+    # Second pass: process and pad bitstrings
+    for sample in X:
+        if isinstance(sample[0], list):  # Pairs mode
+            processed_sample = []
+            for cascade_idx, cascade_set in enumerate(sample):
+                processed_cascades = []
+                # Process existing filters
+                for filter_idx, cascade in enumerate(cascade_set):
+                    bitstring = ''.join(format(byte, '08b') for byte in cascade)
+                    if remove_header_bits:
+                        bitstring = bitstring[64:]
+                    # Pad to maximum length for this position
+                    padded_bitstring = bitstring.ljust(max_lengths[cascade_idx][filter_idx], '0')
+                    processed_cascades.append(padded_bitstring)
+                
+                # Add missing filters as all zeros
+                while len(processed_cascades) < max_filters:
+                    missing_idx = len(processed_cascades)
+                    processed_cascades.append('0' * max_lengths[cascade_idx][missing_idx])
+                
                 processed_sample.append(processed_cascades)
             processed_X.append(processed_sample)
-        else:  # Single mode (single cascade)
+        
+        else:  # Single mode
             processed_cascades = []
-            for cascade in sample:
+            # Process existing filters
+            for filter_idx, cascade in enumerate(sample):
                 bitstring = ''.join(format(byte, '08b') for byte in cascade)
                 if remove_header_bits:
                     bitstring = bitstring[64:]
-                processed_cascades.append(bitstring)
+                # Pad to maximum length for this position
+                padded_bitstring = bitstring.ljust(max_lengths[0][filter_idx], '0')
+                processed_cascades.append(padded_bitstring)
+            
+            # Add missing filters as all zeros
+            while len(processed_cascades) < max_filters:
+                missing_idx = len(processed_cascades)
+                processed_cascades.append('0' * max_lengths[0][missing_idx])
+            
             processed_X.append(processed_cascades)
+    
     return processed_X
 
 def save_to_csv(X, y, filename, pairs_mode=False):
