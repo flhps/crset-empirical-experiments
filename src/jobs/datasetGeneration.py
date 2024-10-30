@@ -15,8 +15,8 @@ def get_cascade_bitstrings(cascade):
         bitstrings.append(bitstring)
     return bitstrings
 
-def generate_single_series_datapoint(r, s, rhat, p, k, parallelize):
-    """Generate a single cascade datapoint for series mode."""
+def generate_single_cascade_datapoint(r, s, rhat, p, k, parallelize):
+    """Generate a single cascade datapoint."""
     start_time = time.time()
     
     valid_ids = cu.gen_ids(r)  
@@ -34,8 +34,8 @@ def generate_single_series_datapoint(r, s, rhat, p, k, parallelize):
     duration = time.time() - start_time
     return get_cascade_bitstrings(cascade), [r, s, duration, tries]
 
-def generate_single_classification_datapoint(params, same_class=True):
-    """Generate a pair of cascades for classification mode."""
+def generate_cascade_pair_datapoint(params, identical=True):
+    """Generate a pair of cascades, either identical or slightly different."""
     start_time = time.time()
     
     # First cascade parameters
@@ -46,7 +46,7 @@ def generate_single_classification_datapoint(params, same_class=True):
     k1 = params["k"]
     
     # Second cascade parameters - either identical or slightly different
-    if same_class:
+    if identical:
         r2, s2, rhat2, p2, k2 = r1, s1, rhat1, p1, k1
     else:
         # Randomly modify parameters within a reasonable range
@@ -70,32 +70,32 @@ def generate_single_classification_datapoint(params, same_class=True):
     
     return (
         [get_cascade_bitstrings(cascade1), get_cascade_bitstrings(cascade2)],
-        [r1, s1, r2, s2, duration, tries1 + tries2, int(same_class)]
+        [r1, s1, r2, s2, duration, tries1 + tries2, int(identical)]
     )
 
 def generate_dataset_parallel(params, n_samples):
     """Generate multiple cascade datapoints in parallel."""
-    if params.get("classification", False):
-        return generate_classification_dataset(params, n_samples)
+    if params.get("pairs_mode", False):
+        return generate_pairs_dataset(params, n_samples)
     else:
-        return generate_series_dataset(params, n_samples)
+        return generate_single_dataset(params, n_samples)
 
-def generate_series_dataset(params, n_samples):
-    """Generate dataset for series mode."""
+def generate_single_dataset(params, n_samples):
+    """Generate dataset with single cascades."""
     X = []
     y = np.empty([n_samples, 4])  # [r, s, duration, tries]
     
     with concurrent.futures.ProcessPoolExecutor() as executor:
         future_to_data = {
             executor.submit(
-                generate_single_series_datapoint, 
+                generate_single_cascade_datapoint, 
                 params["r"], params["s"], params["rhat"], 
                 params["p"][0], params["k"], 
                 params.get("parallelize", False)
             ): i for i in range(n_samples)
         }
         
-        with tqdm(total=n_samples, desc="Generating series data") as pbar:
+        with tqdm(total=n_samples, desc="Generating single cascades") as pbar:
             for future in concurrent.futures.as_completed(future_to_data):
                 i = future_to_data[future]
                 try:
@@ -108,23 +108,23 @@ def generate_series_dataset(params, n_samples):
     
     return X, y
 
-def generate_classification_dataset(params, n_samples):
-    """Generate dataset for classification mode."""
+def generate_pairs_dataset(params, n_samples):
+    """Generate dataset with pairs of cascades."""
     X = []
-    y = np.empty([n_samples, 7])  # [r1, s1, r2, s2, duration, total_tries, same_class]
+    y = np.empty([n_samples, 7])  # [r1, s1, r2, s2, duration, total_tries, identical]
     
     with concurrent.futures.ProcessPoolExecutor() as executor:
-        # Generate balanced dataset (50% same class, 50% different class)
+        # Generate balanced dataset (50% identical, 50% different)
         future_to_data = {}
         for i in range(n_samples):
-            same_class = i < n_samples // 2
+            identical = i < n_samples // 2
             future_to_data[executor.submit(
-                generate_single_classification_datapoint,
+                generate_cascade_pair_datapoint,
                 params,
-                same_class
+                identical
             )] = i
         
-        with tqdm(total=n_samples, desc="Generating classification data") as pbar:
+        with tqdm(total=n_samples, desc="Generating cascade pairs") as pbar:
             for future in concurrent.futures.as_completed(future_to_data):
                 i = future_to_data[future]
                 try:
@@ -141,7 +141,7 @@ def process_cascade_bitstrings(X, remove_header_bits=False):
     """Process cascade bitstrings with optional header bit removal."""
     processed_X = []
     for sample in X:
-        if isinstance(sample[0], list):  # Classification mode (pair of cascades)
+        if isinstance(sample[0], list):  # Pairs mode (pair of cascades)
             processed_sample = []
             for cascade_set in sample:
                 processed_cascades = []
@@ -152,7 +152,7 @@ def process_cascade_bitstrings(X, remove_header_bits=False):
                     processed_cascades.append(bitstring)
                 processed_sample.append(processed_cascades)
             processed_X.append(processed_sample)
-        else:  # Series mode (single cascade)
+        else:  # Single mode (single cascade)
             processed_cascades = []
             for cascade in sample:
                 bitstring = ''.join(format(byte, '08b') for byte in cascade)
@@ -162,15 +162,15 @@ def process_cascade_bitstrings(X, remove_header_bits=False):
             processed_X.append(processed_cascades)
     return processed_X
 
-def save_to_csv(X, y, filename, classification_mode=False):
+def save_to_csv(X, y, filename, pairs_mode=False):
     """Save generated data to CSV file."""
     with open(filename, 'w', newline='') as csvfile:
         writer = csv.writer(csvfile, delimiter=';', quoting=csv.QUOTE_NONE, escapechar='\\')
         
-        if classification_mode:
+        if pairs_mode:
             writer.writerow([
                 'cascade1_bitstrings', 'cascade2_bitstrings',
-                'r1', 's1', 'r2', 's2', 'duration', 'total_tries', 'same_class'
+                'r1', 's1', 'r2', 's2', 'duration', 'total_tries', 'identical'
             ])
             for (bitstrings1, bitstrings2), metadata in zip(X, y):
                 writer.writerow([
@@ -182,7 +182,7 @@ def save_to_csv(X, y, filename, classification_mode=False):
                     int(metadata[3]),  # s2
                     metadata[4],       # duration
                     int(metadata[5]),  # total_tries
-                    int(metadata[6])   # same_class
+                    int(metadata[6])   # identical
                 ])
         else:
             writer.writerow(['concatenated_bitstrings', 'num_included', 'num_excluded', 'duration', 'tries'])
@@ -201,7 +201,7 @@ def run(params):
         output_dir = params.get("outputDirectory", "data")
         os.makedirs(output_dir, exist_ok=True)
         
-        print(f"Generating {params['samples']} samples in {'classification' if params.get('classification') else 'series'} mode...")
+        print(f"Generating {params['samples']} samples in {'pairs' if params.get('pairs_mode') else 'single'} mode...")
         start_time = time.time()
         
         X, y = generate_dataset_parallel(params, params['samples'])
@@ -209,17 +209,17 @@ def run(params):
         
         output_file = os.path.join(
             output_dir,
-            f"{'classification' if params.get('classification') else 'series'}-data-{int(time.time_ns())}.csv"
+            f"{'pairs' if params.get('pairs_mode') else 'single'}-data-{int(time.time_ns())}.csv"
         )
         
-        save_to_csv(X_processed, y, output_file, params.get("classification", False))
+        save_to_csv(X_processed, y, output_file, params.get("pairs_mode", False))
         
         end_time = time.time()
         
         return {
             "message": (
                 f"Successfully generated {params['samples']} samples in "
-                f"{'classification' if params.get('classification') else 'series'} mode and "
+                f"{'pairs' if params.get('pairs_mode') else 'single'} mode and "
                 f"saved to {output_file}. "
                 f"Time taken: {end_time - start_time:.2f} seconds"
             )
