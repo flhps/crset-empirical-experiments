@@ -36,42 +36,63 @@ def generate_single_cascade_datapoint(r, s, rhat, p, k, parallelize):
     return get_cascade_bitstrings(cascade), [r, s, duration, tries]
 
 def generate_cascade_pair_datapoint(params, identical=True):
-    """Generate a pair of cascades, either identical or slightly different."""
+    """Generate a pair of cascades, either identical or different."""
     start_time = time.time()
     
-    # First cascade parameters
-    r1 = params["r"]
-    s1 = params["s"]
-    rhat1 = params["rhat"]
-    p1 = params["p"][0]
-    k1 = params["k"]
+    # Parameters
+    r = random.randint(0, params["r"] - 1)  # number of valid IDs
+    s = random.randint(1, params["s"])      # number of revoked IDs
+    rhat = params["rhat"]
+    p = params["p"][0]
+    k = params["k"]
     
-    # Second cascade parameters - either identical or slightly different
-    if identical:
-        r2, s2, rhat2, p2, k2 = r1, s1, rhat1, p1, k1
-    else:
-        # Randomly modify parameters within a reasonable range
-        r2 = int(r1 * random.uniform(0.8, 1.2))
-        s2 = int(s1 * random.uniform(0.8, 1.2))
-        rhat2 = int(rhat1 * random.uniform(0.8, 1.2))
-        p2 = p1 * random.uniform(0.8, 1.2)
-        k2 = k1  # Keep k constant as it's typically a fixed parameter
+    # Generate initial valid and revoked sets
+    valid_ids = cu.gen_ids(r)
+    revoked_ids = cu.gen_ids_wo_overlap(s, valid_ids)
     
     # Generate first cascade
-    valid_ids1 = cu.gen_ids(r1)
-    revoked_ids1 = cu.gen_ids_wo_overlap(s1, valid_ids1)
-    cascade1, tries1 = cu.try_cascade(valid_ids1, revoked_ids1, rhat1, p=p1, k=k1, multi_process=params["parallelize"])
+    cascade1, tries1 = cu.try_cascade(
+        valid_ids,
+        revoked_ids,
+        rhat,
+        p=p,
+        k=k,
+        multi_process=params["parallelize"]
+    )
     
-    # Generate second cascade
-    valid_ids2 = cu.gen_ids(r2)
-    revoked_ids2 = cu.gen_ids_wo_overlap(s2, valid_ids2)
-    cascade2, tries2 = cu.try_cascade(valid_ids2, revoked_ids2, rhat2, p=p2, k=k2, multi_process=params["parallelize"])
+    if identical:
+        # For identical pairs, create new cascade with same sets
+        cascade2, tries2 = cu.try_cascade(
+            valid_ids,
+            revoked_ids,
+            rhat,
+            p=p,
+            k=k,
+            multi_process=params["parallelize"]
+        )
+    else:
+        # For different pairs, modify sets using delta sampling
+        delta = random.sample(valid_ids, random.randint(1, min(rhat - r, len(valid_ids))))
+        
+        # Create modified valid and revoked sets
+        valid_ids2 = [x for x in valid_ids if x not in delta]
+        revoked_ids2 = revoked_ids + delta
+        
+        # Generate second cascade with modified sets
+        cascade2, tries2 = cu.try_cascade(
+            valid_ids2,
+            revoked_ids2,
+            rhat,
+            p=p,
+            k=k,
+            multi_process=params["parallelize"]
+        )
     
     duration = time.time() - start_time
     
     return (
         [get_cascade_bitstrings(cascade1), get_cascade_bitstrings(cascade2)],
-        [r1, s1, r2, s2, duration, tries1 + tries2, int(identical)]
+        [r, s, r, s, duration, tries1 + tries2, int(identical)]
     )
 
 def generate_dataset_parallel(params, n_samples):
