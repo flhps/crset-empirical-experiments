@@ -31,10 +31,8 @@ sequence:
       p: [0.5, 0.4]
       k: 1
       samples: 10
-      rPadding: true # TODO
-      classification: false
+      classification: true
       collectRuntime: true
       parallelize: false
-      formatPadding: true # TODO
       outputDirectory: "data"
-      remove_header_bits: true 
+      remove_header_bits: true
