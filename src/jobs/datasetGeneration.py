@@ -33,7 +33,7 @@ def generate_single_datapoint(r, s, rhat, p, k, parallelize):
     )
     
     duration = time.time() - start_time
-    return get_cascade_bitstrings(cascade), [r, s, duration]
+    return get_cascade_bitstrings(cascade), [r, s, duration, tries]
 
 def generate_dataset_parallel(params, n_samples):
     """Generate multiple cascade datapoints in parallel."""
@@ -45,7 +45,7 @@ def generate_dataset_parallel(params, n_samples):
     parallelize = params.get("parallelize", False)
     
     X = []  # Will store cascade bitstrings
-    y = np.empty([n_samples, 3])  # Will store [r, s, duration]
+    y = np.empty([n_samples, 4])  # Will store [r, s, duration, tries]
     
     with concurrent.futures.ProcessPoolExecutor() as executor:
         future_to_data = {
@@ -70,6 +70,7 @@ def generate_dataset_parallel(params, n_samples):
                     print(f"Sample {i} generated an exception: {exc}")
     
     return X, y
+
 
 def process_cascade_bitstrings(X, remove_header_bits=False):
     """
@@ -99,7 +100,7 @@ def save_to_csv(X, y, filename):
     """Save generated data to CSV file."""
     with open(filename, 'w', newline='') as csvfile:
         writer = csv.writer(csvfile, delimiter=';', quoting=csv.QUOTE_NONE, escapechar='\\')
-        writer.writerow(['concatenated_bitstrings', 'num_included', 'num_excluded', 'duration'])
+        writer.writerow(['concatenated_bitstrings', 'num_included', 'num_excluded', 'duration', 'tries'])
         
         for bitstrings, metadata in zip(X, y):
             concatenated_bitstring = ','.join(bitstrings)
@@ -107,7 +108,8 @@ def save_to_csv(X, y, filename):
                 concatenated_bitstring,
                 int(metadata[0]),  # num_included (r)
                 int(metadata[1]),  # num_excluded (s)
-                metadata[2]        # duration
+                metadata[2],       # duration
+                int(metadata[3])   # tries
             ])
 
 def run(params):
