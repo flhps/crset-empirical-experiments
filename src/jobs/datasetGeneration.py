@@ -268,10 +268,16 @@ def save_to_csv(X, y, filename, pairs_mode=False):
 def run(params):
     """Main function to generate dataset based on provided parameters."""
     try:
-        output_dir = params.get("outputDirectory", "data")
+        # Create base data directory
+        base_dir = params.get("outputDirectory", "data")
+        os.makedirs(base_dir, exist_ok=True)
+        
+        # Create mode-specific subdirectory
+        mode_dir = "pairs" if params.get("pairs_mode", False) else "single"
+        output_dir = os.path.join(base_dir, mode_dir)
         os.makedirs(output_dir, exist_ok=True)
         
-        print(f"Generating {params['samples']} samples in {'pairs' if params.get('pairs_mode') else 'single'} mode...")
+        print(f"Generating {params['samples']} samples in {mode_dir} mode...")
         start_time = time.time()
         
         X, y = generate_dataset_parallel(params, params['samples'])
@@ -283,7 +289,7 @@ def run(params):
         
         output_file = os.path.join(
             output_dir,
-            f"{'pairs' if params.get('pairs_mode') else 'single'}-data-{int(time.time_ns())}.csv"
+            f"{mode_dir}-data-{int(time.time_ns())}.csv"
         )
         
         save_to_csv(X_processed, y, output_file, params.get("pairs_mode", False))
@@ -293,8 +299,7 @@ def run(params):
         return {
             "message": (
                 f"Successfully generated {params['samples']} samples in "
-                f"{'pairs' if params.get('pairs_mode') else 'single'} mode and "
-                f"saved to {output_file}. "
+                f"{mode_dir} mode and saved to {output_file}. "
                 f"Time taken: {end_time - start_time:.2f} seconds"
             )
         }
