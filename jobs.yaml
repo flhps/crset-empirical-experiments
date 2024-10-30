@@ -36,3 +36,4 @@ sequence:
       parallelize: false
       outputDirectory: "data"
       remove_header_bits: true
+      padding: false  # control padding behavior

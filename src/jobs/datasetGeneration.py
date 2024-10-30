@@ -138,11 +138,35 @@ def generate_pairs_dataset(params, n_samples):
     
     return X, y
 
-def process_cascade_bitstrings(X, remove_header_bits=False):
+def process_cascade_bitstrings(X, remove_header_bits=False, padding=False):
     """Process cascade bitstrings with optional header bit removal and padding."""
     processed_X = []
     
-    # First pass: find maximum lengths for each filter position and max number of filters
+    if not padding:
+        # Original processing without padding
+        for sample in X:
+            if isinstance(sample[0], list):  # Pairs mode
+                processed_sample = []
+                for cascade_set in sample:
+                    processed_cascades = []
+                    for cascade in cascade_set:
+                        bitstring = ''.join(format(byte, '08b') for byte in cascade)
+                        if remove_header_bits:
+                            bitstring = bitstring[64:]
+                        processed_cascades.append(bitstring)
+                    processed_sample.append(processed_cascades)
+                processed_X.append(processed_sample)
+            else:  # Single mode
+                processed_cascades = []
+                for cascade in sample:
+                    bitstring = ''.join(format(byte, '08b') for byte in cascade)
+                    if remove_header_bits:
+                        bitstring = bitstring[64:]
+                    processed_cascades.append(bitstring)
+                processed_X.append(processed_cascades)
+        return processed_X
+    
+    # If padding is enabled, proceed with padding logic
     max_lengths = {0: [], 1: []}  # Initialize for both cascades in pairs mode
     max_filters = 0
     
@@ -169,7 +193,7 @@ def process_cascade_bitstrings(X, remove_header_bits=False):
                         len(bitstring)
                     )
     
-    # Second pass: process and pad bitstrings
+    # Process and pad bitstrings
     for sample in X:
         if isinstance(sample[0], list):  # Pairs mode
             processed_sample = []
@@ -180,7 +204,6 @@ def process_cascade_bitstrings(X, remove_header_bits=False):
                     bitstring = ''.join(format(byte, '08b') for byte in cascade)
                     if remove_header_bits:
                         bitstring = bitstring[64:]
-                    # Pad to maximum length for this position
                     padded_bitstring = bitstring.ljust(max_lengths[cascade_idx][filter_idx], '0')
                     processed_cascades.append(padded_bitstring)
                 
@@ -194,16 +217,13 @@ def process_cascade_bitstrings(X, remove_header_bits=False):
         
         else:  # Single mode
             processed_cascades = []
-            # Process existing filters
             for filter_idx, cascade in enumerate(sample):
                 bitstring = ''.join(format(byte, '08b') for byte in cascade)
                 if remove_header_bits:
                     bitstring = bitstring[64:]
-                # Pad to maximum length for this position
                 padded_bitstring = bitstring.ljust(max_lengths[0][filter_idx], '0')
                 processed_cascades.append(padded_bitstring)
             
-            # Add missing filters as all zeros
             while len(processed_cascades) < max_filters:
                 missing_idx = len(processed_cascades)
                 processed_cascades.append('0' * max_lengths[0][missing_idx])
@@ -255,7 +275,11 @@ def run(params):
         start_time = time.time()
         
         X, y = generate_dataset_parallel(params, params['samples'])
-        X_processed = process_cascade_bitstrings(X, params.get("remove_header_bits", False))
+        X_processed = process_cascade_bitstrings(
+            X, 
+            remove_header_bits=params.get("remove_header_bits", False),
+            padding=params.get("padding", False)
+        )
         
         output_file = os.path.join(
             output_dir,
