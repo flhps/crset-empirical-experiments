@@ -28,12 +28,14 @@ sequence:
       r: 500
       s: 1000
       rhat: 1000
+      pad_to_target_size: false     
       p: [0.5, 0.4]
       k: 1
       samples: 10
-      pairs_mode: true  # false for single cascades
+      pairs_mode: true
       collectRuntime: true
       parallelize: false
       outputDirectory: "data"
       remove_header_bits: true
-      padding: true  # control padding behavior
+      pad_filters: true
+      

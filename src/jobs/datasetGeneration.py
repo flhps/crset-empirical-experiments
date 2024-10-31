@@ -39,16 +39,20 @@ def generate_cascade_pair_datapoint(params, identical=True):
     """Generate a pair of cascades, either identical or different."""
     start_time = time.time()
     
-    # Parameters
-    r = random.randint(0, params["r"] - 1)
+    # Get random r value (1 to max_r)
+    max_r = params["r"]
+    actual_r = random.randint(1, max_r)
+    
+    # Set rhat based on padding_mode
+    rhat = params["rhat"] if params.get("pad_to_target_size", False) else actual_r
+    
     s = random.randint(1, params["s"])
-    rhat = params["rhat"]
     p = params["p"][0]
     k = params["k"]
     
     # Generate initial sets
-    valid_ids = cu.gen_ids(r)  # This returns a set
-    revoked_ids = cu.gen_ids_wo_overlap(s, valid_ids)  # This returns a set
+    valid_ids = cu.gen_ids(actual_r)
+    revoked_ids = cu.gen_ids_wo_overlap(s, valid_ids)
     
     # Generate first cascade
     cascade1, tries1 = cu.try_cascade(
@@ -61,7 +65,6 @@ def generate_cascade_pair_datapoint(params, identical=True):
     )
     
     if identical:
-        # For identical pairs, create new cascade with same sets
         cascade2, tries2 = cu.try_cascade(
             valid_ids,
             revoked_ids,
@@ -71,18 +74,15 @@ def generate_cascade_pair_datapoint(params, identical=True):
             multi_process=params["parallelize"]
         )
     else:
-        # Convert set to list before sampling
         valid_ids_list = list(valid_ids)
         delta = random.sample(
             valid_ids_list,
-            random.randint(1, min(rhat - r, len(valid_ids_list)))
+            random.randint(1, min(rhat - actual_r, len(valid_ids_list)))
         )
         
-        # Create modified sets
         valid_ids2 = set(x for x in valid_ids if x not in delta)
         revoked_ids2 = set(list(revoked_ids) + delta)
         
-        # Generate second cascade with modified sets
         cascade2, tries2 = cu.try_cascade(
             valid_ids2,
             revoked_ids2,
@@ -96,7 +96,7 @@ def generate_cascade_pair_datapoint(params, identical=True):
     
     return (
         [get_cascade_bitstrings(cascade1), get_cascade_bitstrings(cascade2)],
-        [r, s, r, s, duration, tries1 + tries2, int(identical)]
+        [actual_r, s, actual_r, s, duration, tries1 + tries2, int(identical)]
     )
 
 def generate_dataset_parallel(params, n_samples):
@@ -163,11 +163,11 @@ def generate_pairs_dataset(params, n_samples):
     
     return X, y
 
-def process_cascade_bitstrings(X, remove_header_bits=False, padding=False):
-    """Process cascade bitstrings with optional header bit removal and padding."""
+def process_cascade_bitstrings(X, remove_header_bits=False, pad_filters=False):
+    """Process cascade bitstrings with optional header bit removal and filter padding."""
     processed_X = []
     
-    if not padding:
+    if not pad_filters:  # Renamed from padding
         # Original processing without padding
         for sample in X:
             if isinstance(sample[0], list):  # Pairs mode
@@ -191,7 +191,7 @@ def process_cascade_bitstrings(X, remove_header_bits=False, padding=False):
                 processed_X.append(processed_cascades)
         return processed_X
     
-    # If padding is enabled, proceed with padding logic
+    # If filter padding is enabled, proceed with padding logic
     max_lengths = {0: []}  # Initialize for single mode by default
     max_filters = 0
     
@@ -308,11 +308,9 @@ def save_to_csv(X, y, filename, pairs_mode=False):
 def run(params):
     """Main function to generate dataset based on provided parameters."""
     try:
-        # Create base data directory
         base_dir = params.get("outputDirectory", "data")
         os.makedirs(base_dir, exist_ok=True)
         
-        # Create mode-specific subdirectory
         mode_dir = "pairs" if params.get("pairs_mode", False) else "single"
         output_dir = os.path.join(base_dir, mode_dir)
         os.makedirs(output_dir, exist_ok=True)
@@ -324,7 +322,7 @@ def run(params):
         X_processed = process_cascade_bitstrings(
             X, 
             remove_header_bits=params.get("remove_header_bits", False),
-            padding=params.get("padding", False)
+            pad_filters=params.get("pad_filters", False)  # Renamed from padding
         )
         
         output_file = os.path.join(
