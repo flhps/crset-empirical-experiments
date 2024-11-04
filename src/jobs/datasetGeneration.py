@@ -16,12 +16,19 @@ def get_cascade_bitstrings(cascade):
     return bitstrings
 
 
-def generate_single_cascade_datapoint(r, s, rhat, p, k, parallelize):
-    """Generate a single cascade datapoint."""
+def generate_single_cascade_datapoint(max_r, max_s, rhat, p, k, parallelize):
+    """Generate a single cascade datapoint with random r and s values."""
     start_time = time.time()
     
-    valid_ids = cu.gen_ids(r)  
-    revoked_ids = cu.gen_ids_wo_overlap(s, valid_ids)
+    # Generate random r and s values within specified ranges
+    actual_r = random.randint(1, max_r)
+    actual_s = random.randint(1, max_s)
+    
+    #print("R: ", actual_r)
+    #print("S: ", actual_s)
+    
+    valid_ids = cu.gen_ids(actual_r)  
+    revoked_ids = cu.gen_ids_wo_overlap(actual_s, valid_ids)
     
     cascade, tries = cu.try_cascade(
         valid_ids,
@@ -33,7 +40,8 @@ def generate_single_cascade_datapoint(r, s, rhat, p, k, parallelize):
     )
     
     duration = time.time() - start_time
-    return get_cascade_bitstrings(cascade), [r, s, duration, tries]
+    return get_cascade_bitstrings(cascade), [actual_r, actual_s, duration, tries]
+
 
 def generate_cascade_pair_datapoint(params, identical=True):
     """Generate a pair of cascades, either identical or different."""
@@ -107,7 +115,7 @@ def generate_dataset_parallel(params, n_samples):
         return generate_single_dataset(params, n_samples)
 
 def generate_single_dataset(params, n_samples):
-    """Generate dataset with single cascades."""
+    """Generate dataset with single cascades using random r and s values."""
     X = []
     y = np.empty([n_samples, 4])  # [r, s, duration, tries]
     
