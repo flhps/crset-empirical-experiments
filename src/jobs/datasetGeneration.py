@@ -16,7 +16,7 @@ def get_cascade_bitstrings(cascade):
     return bitstrings
 
 
-def generate_single_cascade_datapoint(max_r, max_s, rhat, p, k, parallelize):
+def generate_single_cascade_datapoint(max_r, max_s, rhat, p, k, parallelize, pad_to_target_size=False):
     """Generate a single cascade datapoint with random r and s values."""
     start_time = time.time()
     
@@ -24,16 +24,24 @@ def generate_single_cascade_datapoint(max_r, max_s, rhat, p, k, parallelize):
     actual_r = random.randint(1, max_r)
     actual_s = random.randint(1, max_s)
     
-    #print("R: ", actual_r)
-    #print("S: ", actual_s)
+    # Generate valid IDs
+    valid_ids = cu.gen_ids(actual_r)
     
-    valid_ids = cu.gen_ids(actual_r)  
+    # If padding is enabled, generate additional IDs up to rhat
+    if pad_to_target_size and rhat > actual_r:
+        padding_ids = cu.gen_ids_wo_overlap(rhat - actual_r, valid_ids)
+        valid_ids.update(padding_ids)
+    
+    # Generate revoked IDs
     revoked_ids = cu.gen_ids_wo_overlap(actual_s, valid_ids)
+    
+    # Use either padded rhat or actual r based on padding mode
+    target_size = rhat if pad_to_target_size else actual_r
     
     cascade, tries = cu.try_cascade(
         valid_ids,
         revoked_ids,
-        rhat,
+        target_size,
         p=p,
         k=k,
         multi_process=parallelize
@@ -51,22 +59,28 @@ def generate_cascade_pair_datapoint(params, identical=True):
     max_r = params["r"]
     actual_r = random.randint(1, max_r)
     
-    # Set rhat based on padding_mode
-    rhat = params["rhat"] if params.get("pad_to_target_size", False) else actual_r
+    # Set target size based on padding mode
+    target_size = params["rhat"] if params.get("pad_to_target_size", False) else actual_r
     
     s = random.randint(1, params["s"])
     p = params["p"][0]
     k = params["k"]
     
-    # Generate initial sets
+    # Generate initial valid IDs
     valid_ids = cu.gen_ids(actual_r)
+    
+    # Add padding if enabled
+    if params.get("pad_to_target_size", False) and target_size > actual_r:
+        padding_ids = cu.gen_ids_wo_overlap(target_size - actual_r, valid_ids)
+        valid_ids.update(padding_ids)
+    
     revoked_ids = cu.gen_ids_wo_overlap(s, valid_ids)
     
     # Generate first cascade
     cascade1, tries1 = cu.try_cascade(
         valid_ids,
         revoked_ids,
-        rhat,
+        target_size,
         p=p,
         k=k,
         multi_process=params["parallelize"]
@@ -76,17 +90,15 @@ def generate_cascade_pair_datapoint(params, identical=True):
         cascade2, tries2 = cu.try_cascade(
             valid_ids,
             revoked_ids,
-            rhat,
+            target_size,
             p=p,
             k=k,
             multi_process=params["parallelize"]
         )
     else:
         valid_ids_list = list(valid_ids)
-        delta = random.sample(
-            valid_ids_list,
-            random.randint(1, min(rhat - actual_r, len(valid_ids_list)))
-        )
+        max_delta = min(target_size - actual_r, len(valid_ids_list)) if params.get("pad_to_target_size", False) else len(valid_ids_list)
+        delta = random.sample(valid_ids_list, random.randint(1, max_delta))
         
         valid_ids2 = set(x for x in valid_ids if x not in delta)
         revoked_ids2 = set(list(revoked_ids) + delta)
@@ -94,7 +106,7 @@ def generate_cascade_pair_datapoint(params, identical=True):
         cascade2, tries2 = cu.try_cascade(
             valid_ids2,
             revoked_ids2,
-            rhat,
+            target_size,
             p=p,
             k=k,
             multi_process=params["parallelize"]
@@ -123,9 +135,13 @@ def generate_single_dataset(params, n_samples):
         future_to_data = {
             executor.submit(
                 generate_single_cascade_datapoint, 
-                params["r"], params["s"], params["rhat"], 
-                params["p"][0], params["k"], 
-                params.get("parallelize", False)
+                params["r"], 
+                params["s"], 
+                params["rhat"],
+                params["p"][0], 
+                params["k"],
+                params.get("parallelize", False),
+                params.get("pad_to_target_size", False)
             ): i for i in range(n_samples)
         }
         
@@ -148,7 +164,6 @@ def generate_pairs_dataset(params, n_samples):
     y = np.empty([n_samples, 7])  # [r1, s1, r2, s2, duration, total_tries, identical]
     
     with concurrent.futures.ProcessPoolExecutor() as executor:
-        # Generate balanced dataset (50% identical, 50% different)
         future_to_data = {}
         for i in range(n_samples):
             identical = i < n_samples // 2
@@ -171,11 +186,11 @@ def generate_pairs_dataset(params, n_samples):
     
     return X, y
 
-def process_cascade_bitstrings(X, remove_header_bits=False, pad_filters=False):
-    """Process cascade bitstrings with optional header bit removal and filter padding."""
+def process_cascade_bitstrings(X, remove_header_bits=False, pad_output_format=False):
+    """Process cascade bitstrings with optional header bit removal and format padding."""
     processed_X = []
     
-    if not pad_filters:  # Renamed from padding
+    if not pad_output_format:
         # Original processing without padding
         for sample in X:
             if isinstance(sample[0], list):  # Pairs mode
@@ -200,21 +215,20 @@ def process_cascade_bitstrings(X, remove_header_bits=False, pad_filters=False):
         return processed_X
     
     # If filter padding is enabled, proceed with padding logic
-    max_lengths = {0: []}  # Initialize for single mode by default
+    max_lengths = {0: []}
     max_filters = 0
     
-    # Find max number of filters
+    # Find max number of filters and initialize max_lengths
     for sample in X:
-        if isinstance(sample[0], list):  # Pairs mode
-            max_lengths[1] = []  # Add second cascade for pairs mode
+        if isinstance(sample[0], list):
+            max_lengths[1] = []
             for cascade_set in sample:
                 max_filters = max(max_filters, len(cascade_set))
-        else:  # Single mode
+        else:
             max_filters = max(max_filters, len(sample))
     
-    # Initialize max_lengths arrays with zeros
     max_lengths[0] = [0] * max_filters
-    if len(max_lengths) > 1:  # For pairs mode
+    if len(max_lengths) > 1:
         max_lengths[1] = [0] * max_filters
     
     # Find maximum lengths for each position
@@ -324,13 +338,15 @@ def run(params):
         os.makedirs(output_dir, exist_ok=True)
         
         print(f"Generating {params['samples']} samples in {mode_dir} mode...")
+        print(f"Certificate padding is {'enabled' if params.get('pad_to_target_size', False) else 'disabled'}")
+        
         start_time = time.time()
         
         X, y = generate_dataset_parallel(params, params['samples'])
         X_processed = process_cascade_bitstrings(
             X, 
             remove_header_bits=params.get("remove_header_bits", False),
-            pad_filters=params.get("pad_filters", False)  # Renamed from padding
+            pad_output_format=params.get("pad_output_format", False)
         )
         
         output_file = os.path.join(

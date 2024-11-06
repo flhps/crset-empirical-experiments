@@ -23,19 +23,37 @@ sequence:
 #      p: [0.02, 0.6, 0.02]
 #      k: 1
 #      samples: 3
+  # Dataset generation without certificate padding (unsecure)
   - type: datasetGeneration
     params:
-      r: 50000
-      s: 100000
-      rhat: 100000
-      pad_to_target_size: false     
-      p: [0.5, 0.4]
+      r: 5000
+      s: 10000
+      rhat: 5000  # Set to r value to avoid padding
+      pad_to_target_size: false
+      p: [0.5]
       k: 1
-      samples: 1000
+      samples: 1
+      pairs_mode: false
+      collectRuntime: false
+      parallelize: false
+      outputDirectory: "data/no_padding"
+      remove_header_bits: true
+      pad_output_format: true
+
+  # Dataset generation with certificate padding (secure)
+  - type: datasetGeneration
+    params:
+      r: 5000
+      s: 10000
+      rhat: 10000  # Larger than r to enable padding
+      pad_to_target_size: true
+      p: [0.5]
+      k: 1
+      samples: 1
       pairs_mode: false
       collectRuntime: true
       parallelize: false
-      outputDirectory: "data"
+      outputDirectory: "data/with_padding"
       remove_header_bits: true
-      pad_filters: true
+      pad_output_format: true
       
