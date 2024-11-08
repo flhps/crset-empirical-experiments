@@ -12,7 +12,7 @@ class UnpaddedStatusCascade(FilterCascade):
     ):
         # Calculate FPRs
         fprs = [math.sqrt(p) / 2.0, p]
-
+        
         # ValidIds are positives, revokedIds are negatives
         if len(validIds) >= len(revokedIds):
             raise ValueError("Number of valid IDs must be less than number of revoked IDs")

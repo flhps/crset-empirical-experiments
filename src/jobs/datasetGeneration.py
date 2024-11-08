@@ -20,9 +20,16 @@ def generate_single_cascade_datapoint(max_r, max_s, rhat, p, k, parallelize, pad
     """Generate a single cascade datapoint with random r and s values."""
     start_time = time.time()
     
-    # Generate random r and s values within specified ranges
-    actual_r = random.randint(1, max_r)
-    actual_s = random.randint(1, max_s)
+    # For unpadded case, we need s > r
+    if not pad_to_target_size:
+        # First pick s (must be larger than r will be)
+        actual_s = random.randint(max_r + 1, max_s)
+        # Then pick r (must be smaller than s)
+        actual_r = random.randint(1, min(max_r, actual_s - 1))
+    else:
+        # For padded case, we use StatusCascade's constraint of s < 2*rhat
+        actual_r = random.randint(1, max_r)
+        actual_s = random.randint(actual_r + 1, min(max_s, 2 * rhat - 1))
     
     # Generate valid IDs
     valid_ids = cu.gen_ids(actual_r)
@@ -35,16 +42,14 @@ def generate_single_cascade_datapoint(max_r, max_s, rhat, p, k, parallelize, pad
     # Generate revoked IDs
     revoked_ids = cu.gen_ids_wo_overlap(actual_s, valid_ids)
     
-    # Use either padded rhat or actual r based on padding mode
-    target_size = rhat if pad_to_target_size else actual_r
-    
     cascade, tries = cu.try_cascade(
         valid_ids,
         revoked_ids,
-        target_size,
+        rhat if pad_to_target_size else None,
         p=p,
         k=k,
-        multi_process=parallelize
+        multi_process=parallelize,
+        use_padding=pad_to_target_size
     )
     
     duration = time.time() - start_time
@@ -55,49 +60,50 @@ def generate_cascade_pair_datapoint(params, identical=True):
     """Generate a pair of cascades, either identical or different."""
     start_time = time.time()
     
-    # Get random r value (1 to max_r)
-    max_r = params["r"]
-    actual_r = random.randint(1, max_r)
-    
-    # Set target size based on padding mode
-    target_size = params["rhat"] if params.get("pad_to_target_size", False) else actual_r
-    
-    s = random.randint(1, params["s"])
-    p = params["p"][0]
-    k = params["k"]
+    # Handle generation based on padding mode
+    if not params.get("pad_to_target_size", False):
+        # For unpadded case, s must be greater than r
+        actual_s = random.randint(params["r"] + 1, params["s"])
+        actual_r = random.randint(1, min(params["r"], actual_s - 1))
+    else:
+        # For padded case, follow StatusCascade constraints
+        actual_r = random.randint(1, params["r"])
+        actual_s = random.randint(actual_r + 1, min(params["s"], 2 * params["rhat"] - 1))
     
     # Generate initial valid IDs
     valid_ids = cu.gen_ids(actual_r)
     
     # Add padding if enabled
-    if params.get("pad_to_target_size", False) and target_size > actual_r:
-        padding_ids = cu.gen_ids_wo_overlap(target_size - actual_r, valid_ids)
+    if params.get("pad_to_target_size", False) and params["rhat"] > actual_r:
+        padding_ids = cu.gen_ids_wo_overlap(params["rhat"] - actual_r, valid_ids)
         valid_ids.update(padding_ids)
     
-    revoked_ids = cu.gen_ids_wo_overlap(s, valid_ids)
+    revoked_ids = cu.gen_ids_wo_overlap(actual_s, valid_ids)
     
     # Generate first cascade
     cascade1, tries1 = cu.try_cascade(
         valid_ids,
         revoked_ids,
-        target_size,
-        p=p,
-        k=k,
-        multi_process=params["parallelize"]
+        params["rhat"] if params.get("pad_to_target_size", False) else None,
+        p=params["p"][0],
+        k=params["k"],
+        multi_process=params["parallelize"],
+        use_padding=params.get("pad_to_target_size", False)
     )
     
     if identical:
         cascade2, tries2 = cu.try_cascade(
             valid_ids,
             revoked_ids,
-            target_size,
-            p=p,
-            k=k,
-            multi_process=params["parallelize"]
+            params["rhat"] if params.get("pad_to_target_size", False) else None,
+            p=params["p"][0],
+            k=params["k"],
+            multi_process=params["parallelize"],
+            use_padding=params.get("pad_to_target_size", False)
         )
     else:
         valid_ids_list = list(valid_ids)
-        max_delta = min(target_size - actual_r, len(valid_ids_list)) if params.get("pad_to_target_size", False) else len(valid_ids_list)
+        max_delta = len(valid_ids_list) // 2  # Ensure we keep enough valid IDs
         delta = random.sample(valid_ids_list, random.randint(1, max_delta))
         
         valid_ids2 = set(x for x in valid_ids if x not in delta)
@@ -106,17 +112,18 @@ def generate_cascade_pair_datapoint(params, identical=True):
         cascade2, tries2 = cu.try_cascade(
             valid_ids2,
             revoked_ids2,
-            target_size,
-            p=p,
-            k=k,
-            multi_process=params["parallelize"]
+            params["rhat"] if params.get("pad_to_target_size", False) else None,
+            p=params["p"][0],
+            k=params["k"],
+            multi_process=params["parallelize"],
+            use_padding=params.get("pad_to_target_size", False)
         )
     
     duration = time.time() - start_time
     
     return (
         [get_cascade_bitstrings(cascade1), get_cascade_bitstrings(cascade2)],
-        [actual_r, s, actual_r, s, duration, tries1 + tries2, int(identical)]
+        [actual_r, actual_s, actual_r, actual_s, duration, tries1 + tries2, int(identical)]
     )
 
 def generate_dataset_parallel(params, n_samples):
