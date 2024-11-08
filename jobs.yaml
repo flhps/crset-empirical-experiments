@@ -26,9 +26,9 @@ sequence:
   # Dataset generation without certificate padding (unsecure)
   - type: datasetGeneration
     params:
-      r: 500
-      s: 1000
-      rhat: 500  # Set to r value to avoid padding
+      r: 10000
+      s: 20000
+      rhat: 10000  # Set to r value to avoid padding
       pad_to_target_size: false
       p: [0.5]
       k: 1
@@ -43,9 +43,9 @@ sequence:
   # Dataset generation with certificate padding (secure)
   - type: datasetGeneration
     params:
-      r: 5000
+      r: 10000
       s: 10000
-      rhat: 10000  # Larger than r to enable padding
+      rhat: 20000  # Larger than r to enable padding
       pad_to_target_size: true
       p: [0.5]
       k: 1

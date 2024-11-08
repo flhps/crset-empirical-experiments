@@ -20,11 +20,10 @@ def generate_single_cascade_datapoint(max_r, max_s, rhat, p, k, parallelize, pad
     """Generate a single cascade datapoint with random r and s values."""
     start_time = time.time()
     
-    # For unpadded case, we need s > r
     if not pad_to_target_size:
-        # Then pick r (must be smaller than s)
-        actual_r = random.randint(1, min(max_r, actual_s - 1))
-        # First pick s (must be larger than r will be)
+        # First pick r
+        actual_r = random.randint(1, max_r)
+        # Then pick s (must be larger than the chosen r)
         actual_s = random.randint(actual_r + 1, max_s)
     else:
         # For padded case, we use StatusCascade's constraint of s < 2*rhat
@@ -62,8 +61,9 @@ def generate_cascade_pair_datapoint(params, identical=True):
     
     # Handle generation based on padding mode
     if not params.get("pad_to_target_size", False):
-        # For unpadded case, s must be greater than r
-        actual_r = random.randint(1, min(params["r"], actual_s - 1))
+        # First pick r
+        actual_r = random.randint(1, params["r"])
+        # Then pick s (must be larger than the chosen r)
         actual_s = random.randint(actual_r + 1, params["s"])
         
     else:
