@@ -32,8 +32,8 @@ sequence:
       pad_to_target_size: false
       p: [0.5]
       k: 1
-      samples: 1
-      pairs_mode: false
+      samples: 100
+      pairs_mode: true
       collectRuntime: false
       parallelize: false
       outputDirectory: "data/no_padding"
@@ -49,8 +49,8 @@ sequence:
       pad_to_target_size: true
       p: [0.5]
       k: 1
-      samples: 1
-      pairs_mode: false
+      samples: 100
+      pairs_mode: true
       collectRuntime: false
       parallelize: false
       outputDirectory: "data/with_padding"

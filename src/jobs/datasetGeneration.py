@@ -345,7 +345,7 @@ def run(params):
         os.makedirs(output_dir, exist_ok=True)
         
         print(f"Generating {params['samples']} samples in {mode_dir} mode...")
-        print(f"Certificate padding is {'enabled' if params.get('pad_to_target_size', False) else 'disabled'}")
+        print(f"Certificate padding to r_hat is {'enabled' if params.get('pad_to_target_size', False) else 'disabled'}")
         
         start_time = time.time()
         
