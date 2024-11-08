@@ -48,7 +48,7 @@ def try_cascade(validIds, revokedIds, rHat, p=0.5, k=1, multi_process=False):
         except Exception as e:
             tries = tries + 1
             print("Trying cascade generation again after it failed: %s" % e)
-            if tries > 5:
+            if tries > 50:
                 break
     if not cascade:
         raise Exception(

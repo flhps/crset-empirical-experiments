@@ -26,9 +26,9 @@ sequence:
   # Dataset generation without certificate padding (unsecure)
   - type: datasetGeneration
     params:
-      r: 5000
-      s: 10000
-      rhat: 5000  # Set to r value to avoid padding
+      r: 500
+      s: 1000
+      rhat: 500  # Set to r value to avoid padding
       pad_to_target_size: false
       p: [0.5]
       k: 1
@@ -51,7 +51,7 @@ sequence:
       k: 1
       samples: 1
       pairs_mode: false
-      collectRuntime: true
+      collectRuntime: false
       parallelize: false
       outputDirectory: "data/with_padding"
       remove_header_bits: true
