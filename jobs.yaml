@@ -32,10 +32,10 @@ sequence:
       pad_to_target_size: false
       p: [0.5]
       k: 1
-      samples: 100
-      pairs_mode: true
-      collectRuntime: false
-      parallelize: false
+      samples: 10000
+      pairs_mode: false
+      collectRuntime: true
+      parallelize: true
       outputDirectory: "data/no_padding"
       remove_header_bits: true
       pad_output_format: true
@@ -49,10 +49,10 @@ sequence:
       pad_to_target_size: true
       p: [0.5]
       k: 1
-      samples: 100
-      pairs_mode: true
+      samples: 10000
+      pairs_mode: false
       collectRuntime: false
-      parallelize: false
+      parallelize: true
       outputDirectory: "data/with_padding"
       remove_header_bits: true
       pad_output_format: true
