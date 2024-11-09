@@ -39,7 +39,9 @@ def try_some_cascade(
     return try_cascade(validIds, revokedIds, rHat, p, k, multi_process, use_padding)
 
 
-def try_cascade(validIds, revokedIds, rHat, p=0.5, k=1, multi_process=False, use_padding=True):
+def try_cascade(
+    validIds, revokedIds, rHat, p=0.5, k=1, multi_process=False, use_padding=True
+):
     cascade = None
     tries = 0
     while not cascade:

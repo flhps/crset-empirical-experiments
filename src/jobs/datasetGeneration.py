@@ -6,6 +6,8 @@ import os
 import numpy as np
 from tqdm import tqdm
 import random
+import traceback
+
 
 def get_cascade_bitstrings(cascade):
     """Extract bitstrings from cascade filters."""
@@ -16,116 +18,144 @@ def get_cascade_bitstrings(cascade):
     return bitstrings
 
 
-def generate_single_cascade_datapoint(max_r, max_s, rhat, p, k, parallelize, pad_to_target_size=False):
-    """Generate a single cascade datapoint with random r and s values."""
-    start_time = time.time()
-    
-    if not pad_to_target_size:
+def generate_single_cascade_datapoint(
+    max_r, max_s, max_rhat, p, k, parallelize, use_padding=False
+):
+    """Generate a cascade datapoint with random r and s values.
+    For the padded cascades, we use the minimum size recommended by the Bitstring Status List for herd privacy."""
+    rhat = None
+    if not use_padding:
         # First pick r
         actual_r = random.randint(1, max_r)
         # Then pick s (must be larger than the chosen r)
-        actual_s = random.randint(actual_r + 1, max_s)
+        actual_s = random.randint(actual_r, max_s)
     else:
-        # For padded case, we use StatusCascade's constraint of s < 2*rhat
-        actual_r = random.randint(1, max_r)
-        actual_s = random.randint(actual_r + 1, min(max_s, 2 * rhat - 1))
-    
+        rhat = random.randint(131072, max_rhat)
+        # For padded case, we use StatusCascade's constraint of s <= 2*rhat
+        actual_r = random.randint(1, rhat)
+        actual_s = random.randint(actual_r, 2 * rhat)
+
     # Generate valid IDs
-    valid_ids = cu.gen_ids(actual_r)
-    
-    # If padding is enabled, generate additional IDs up to rhat
-    if pad_to_target_size and rhat > actual_r:
-        padding_ids = cu.gen_ids_wo_overlap(rhat - actual_r, valid_ids)
-        valid_ids.update(padding_ids)
-    
+    valid_ids = cu.gen_ids(actual_r if use_padding else actual_s)
+
     # Generate revoked IDs
-    revoked_ids = cu.gen_ids_wo_overlap(actual_s, valid_ids)
-    
+    revoked_ids = cu.gen_ids_wo_overlap(
+        actual_s if use_padding else actual_r, valid_ids
+    )
+
+    start_time = time.time()
     cascade, tries = cu.try_cascade(
         valid_ids,
         revoked_ids,
-        rhat if pad_to_target_size else None,
+        rhat if use_padding else None,
         p=p,
         k=k,
         multi_process=parallelize,
-        use_padding=pad_to_target_size
+        use_padding=use_padding,
     )
-    
+
     duration = time.time() - start_time
     return get_cascade_bitstrings(cascade), [actual_r, actual_s, duration, tries]
 
 
 def generate_cascade_pair_datapoint(params, identical=True):
-    """Generate a pair of cascades, either identical or different."""
-    start_time = time.time()
-    
+    """Generate a pair of cascades, either identical or different.
+    For the padded cascades, we use the minimum size recommended by the Bitstring Status List for herd privacy."""
+
     # Handle generation based on padding mode
-    if not params.get("pad_to_target_size", False):
+    use_padding = params.get("use_padding", False)
+    rhat = 0
+    if not use_padding:
         # First pick r
-        actual_r = random.randint(1, params["r"])
+        actual_r = random.randint(1, params["max_r"])
         # Then pick s (must be larger than the chosen r)
-        actual_s = random.randint(actual_r + 1, params["s"])
-        
+        actual_s = random.randint(actual_r + 2, params["max_s"])
     else:
+        rhat = random.randint(131072, params["max_rhat"])
         # For padded case, follow StatusCascade constraints
-        actual_r = random.randint(1, params["r"])
-        actual_s = random.randint(actual_r + 1, min(params["s"], 2 * params["rhat"] - 1))
-    
-    # Generate initial valid IDs
-    valid_ids = cu.gen_ids(actual_r)
-    
-    # Add padding if enabled
-    if params.get("pad_to_target_size", False) and params["rhat"] > actual_r:
-        padding_ids = cu.gen_ids_wo_overlap(params["rhat"] - actual_r, valid_ids)
-        valid_ids.update(padding_ids)
-    
-    revoked_ids = cu.gen_ids_wo_overlap(actual_s, valid_ids)
-    
+        actual_r = random.randint(1, rhat)
+        actual_s = random.randint(actual_r, 2 * rhat)
+
+    # Generate valid IDs
+    valid_ids = cu.gen_ids(actual_r if use_padding else actual_s)
+
+    # Generate revoked IDs
+    revoked_ids = cu.gen_ids_wo_overlap(
+        actual_s if use_padding else actual_r, valid_ids
+    )
+
     # Generate first cascade
+    start_time = time.time()
     cascade1, tries1 = cu.try_cascade(
         valid_ids,
         revoked_ids,
-        params["rhat"] if params.get("pad_to_target_size", False) else None,
-        p=params["p"][0],
+        rhat if use_padding else None,
+        p=params["p"],
         k=params["k"],
         multi_process=params["parallelize"],
-        use_padding=params.get("pad_to_target_size", False)
+        use_padding=use_padding,
     )
-    
+
+    duration = time.time() - start_time
+    actual_r2 = actual_r
+    actual_s2 = actual_s
+
     if identical:
+        start_time = time.time()
         cascade2, tries2 = cu.try_cascade(
             valid_ids,
             revoked_ids,
-            params["rhat"] if params.get("pad_to_target_size", False) else None,
-            p=params["p"][0],
+            rhat if use_padding else None,
+            p=params["p"],
             k=params["k"],
             multi_process=params["parallelize"],
-            use_padding=params.get("pad_to_target_size", False)
+            use_padding=use_padding,
         )
     else:
-        valid_ids_list = list(valid_ids)
-        max_delta = len(valid_ids_list) // 2  # Ensure we keep enough valid IDs
-        delta = random.sample(valid_ids_list, random.randint(1, max_delta))
-        
-        valid_ids2 = set(x for x in valid_ids if x not in delta)
-        revoked_ids2 = set(list(revoked_ids) + delta)
-        
+        if not use_padding:
+            # First pick r
+            actual_r2 = random.randint(1, params["max_r"])
+            # Then pick s (must be larger than the chosen r)
+            actual_s2 = random.randint(actual_r2 + 2, params["max_s"])
+        else:
+            # For padded case, follow StatusCascade constraints
+            actual_r2 = random.randint(1, rhat)
+            actual_s2 = random.randint(actual_r2, 2 * rhat)
+
+        # Generate new valid IDs
+        valid_ids2 = cu.gen_ids(actual_r2 if use_padding else actual_s2)
+
+        # Generate new revoked IDs
+        revoked_ids2 = cu.gen_ids_wo_overlap(
+            actual_s2 if use_padding else actual_r2, valid_ids2
+        )
+
+        start_time = time.time()
         cascade2, tries2 = cu.try_cascade(
             valid_ids2,
             revoked_ids2,
-            params["rhat"] if params.get("pad_to_target_size", False) else None,
-            p=params["p"][0],
+            rhat if use_padding else None,
+            p=params["p"],
             k=params["k"],
             multi_process=params["parallelize"],
-            use_padding=params.get("pad_to_target_size", False)
+            use_padding=use_padding,
         )
-    
-    duration = time.time() - start_time
-    
+
+    duration += time.time() - start_time
+
     return (
         [get_cascade_bitstrings(cascade1), get_cascade_bitstrings(cascade2)],
-        [actual_r, actual_s, actual_r, actual_s, duration, tries1 + tries2, int(identical)]
+        [
+            actual_r,
+            actual_s,
+            actual_r2,
+            actual_s2,
+            duration,
+            tries1 + tries2,
+            int(identical),
+        ],
     )
+
 
 def generate_dataset_parallel(params, n_samples):
     """Generate multiple cascade datapoints in parallel."""
@@ -134,25 +164,27 @@ def generate_dataset_parallel(params, n_samples):
     else:
         return generate_single_dataset(params, n_samples)
 
+
 def generate_single_dataset(params, n_samples):
     """Generate dataset with single cascades using random r and s values."""
     X = []
     y = np.empty([n_samples, 4])  # [r, s, duration, tries]
-    
+
     with concurrent.futures.ProcessPoolExecutor() as executor:
         future_to_data = {
             executor.submit(
-                generate_single_cascade_datapoint, 
-                params["r"], 
-                params["s"], 
-                params["rhat"],
-                params["p"][0], 
+                generate_single_cascade_datapoint,
+                params.get("max_r", None),
+                params.get("max_s", None),
+                params.get("max_rhat", None),
+                params["p"],
                 params["k"],
                 params.get("parallelize", False),
-                params.get("pad_to_target_size", False)
-            ): i for i in range(n_samples)
+                params.get("use_padding", False),
+            ): i
+            for i in range(n_samples)
         }
-        
+
         with tqdm(total=n_samples, desc="Generating single cascades") as pbar:
             for future in concurrent.futures.as_completed(future_to_data):
                 i = future_to_data[future]
@@ -162,25 +194,25 @@ def generate_single_dataset(params, n_samples):
                     y[i, :] = metadata
                     pbar.update(1)
                 except Exception as exc:
+                    traceback.print_exc()
                     print(f"Sample {i} generated an exception: {exc}")
-    
+
     return X, y
+
 
 def generate_pairs_dataset(params, n_samples):
     """Generate dataset with pairs of cascades."""
     X = []
     y = np.empty([n_samples, 7])  # [r1, s1, r2, s2, duration, total_tries, identical]
-    
+
     with concurrent.futures.ProcessPoolExecutor() as executor:
         future_to_data = {}
         for i in range(n_samples):
             identical = i < n_samples // 2
-            future_to_data[executor.submit(
-                generate_cascade_pair_datapoint,
-                params,
-                identical
-            )] = i
-        
+            future_to_data[
+                executor.submit(generate_cascade_pair_datapoint, params, identical)
+            ] = i
+
         with tqdm(total=n_samples, desc="Generating cascade pairs") as pbar:
             for future in concurrent.futures.as_completed(future_to_data):
                 i = future_to_data[future]
@@ -190,14 +222,16 @@ def generate_pairs_dataset(params, n_samples):
                     y[i, :] = metadata
                     pbar.update(1)
                 except Exception as exc:
+                    traceback.print_exc()
                     print(f"Sample {i} generated an exception: {exc}")
-    
+
     return X, y
+
 
 def process_cascade_bitstrings(X, remove_header_bits=False, pad_output_format=False):
     """Process cascade bitstrings with optional header bit removal and format padding."""
     processed_X = []
-    
+
     if not pad_output_format:
         # Original processing without padding
         for sample in X:
@@ -206,7 +240,7 @@ def process_cascade_bitstrings(X, remove_header_bits=False, pad_output_format=Fa
                 for cascade_set in sample:
                     processed_cascades = []
                     for cascade in cascade_set:
-                        bitstring = ''.join(format(byte, '08b') for byte in cascade)
+                        bitstring = "".join(format(byte, "08b") for byte in cascade)
                         if remove_header_bits:
                             bitstring = bitstring[64:]
                         processed_cascades.append(bitstring)
@@ -215,17 +249,17 @@ def process_cascade_bitstrings(X, remove_header_bits=False, pad_output_format=Fa
             else:  # Single mode
                 processed_cascades = []
                 for cascade in sample:
-                    bitstring = ''.join(format(byte, '08b') for byte in cascade)
+                    bitstring = "".join(format(byte, "08b") for byte in cascade)
                     if remove_header_bits:
                         bitstring = bitstring[64:]
                     processed_cascades.append(bitstring)
                 processed_X.append(processed_cascades)
         return processed_X
-    
+
     # If filter padding is enabled, proceed with padding logic
     max_lengths = {0: []}
     max_filters = 0
-    
+
     # Find max number of filters and initialize max_lengths
     for sample in X:
         if isinstance(sample[0], list):
@@ -234,33 +268,31 @@ def process_cascade_bitstrings(X, remove_header_bits=False, pad_output_format=Fa
                 max_filters = max(max_filters, len(cascade_set))
         else:
             max_filters = max(max_filters, len(sample))
-    
+
     max_lengths[0] = [0] * max_filters
     if len(max_lengths) > 1:
         max_lengths[1] = [0] * max_filters
-    
+
     # Find maximum lengths for each position
     for sample in X:
         if isinstance(sample[0], list):  # Pairs mode
             for cascade_idx, cascade_set in enumerate(sample):
                 for filter_idx, cascade in enumerate(cascade_set):
-                    bitstring = ''.join(format(byte, '08b') for byte in cascade)
+                    bitstring = "".join(format(byte, "08b") for byte in cascade)
                     if remove_header_bits:
                         bitstring = bitstring[64:]
                     max_lengths[cascade_idx][filter_idx] = max(
-                        max_lengths[cascade_idx][filter_idx],
-                        len(bitstring)
+                        max_lengths[cascade_idx][filter_idx], len(bitstring)
                     )
         else:  # Single mode
             for filter_idx, cascade in enumerate(sample):
-                bitstring = ''.join(format(byte, '08b') for byte in cascade)
+                bitstring = "".join(format(byte, "08b") for byte in cascade)
                 if remove_header_bits:
                     bitstring = bitstring[64:]
                 max_lengths[0][filter_idx] = max(
-                    max_lengths[0][filter_idx],
-                    len(bitstring)
+                    max_lengths[0][filter_idx], len(bitstring)
                 )
-    
+
     # Process and pad bitstrings
     for sample in X:
         if isinstance(sample[0], list):  # Pairs mode
@@ -269,103 +301,133 @@ def process_cascade_bitstrings(X, remove_header_bits=False, pad_output_format=Fa
                 processed_cascades = []
                 # Process existing filters
                 for filter_idx, cascade in enumerate(cascade_set):
-                    bitstring = ''.join(format(byte, '08b') for byte in cascade)
+                    bitstring = "".join(format(byte, "08b") for byte in cascade)
                     if remove_header_bits:
                         bitstring = bitstring[64:]
-                    padded_bitstring = bitstring.ljust(max_lengths[cascade_idx][filter_idx], '0')
+                    padded_bitstring = bitstring.ljust(
+                        max_lengths[cascade_idx][filter_idx], "0"
+                    )
                     processed_cascades.append(padded_bitstring)
-                
+
                 # Add missing filters as all zeros
                 while len(processed_cascades) < max_filters:
                     missing_idx = len(processed_cascades)
-                    processed_cascades.append('0' * max_lengths[cascade_idx][missing_idx])
-                
+                    processed_cascades.append(
+                        "0" * max_lengths[cascade_idx][missing_idx]
+                    )
+
                 processed_sample.append(processed_cascades)
             processed_X.append(processed_sample)
-        
+
         else:  # Single mode
             processed_cascades = []
             # Process existing filters
             for filter_idx, cascade in enumerate(sample):
-                bitstring = ''.join(format(byte, '08b') for byte in cascade)
+                bitstring = "".join(format(byte, "08b") for byte in cascade)
                 if remove_header_bits:
                     bitstring = bitstring[64:]
-                padded_bitstring = bitstring.ljust(max_lengths[0][filter_idx], '0')
+                padded_bitstring = bitstring.ljust(max_lengths[0][filter_idx], "0")
                 processed_cascades.append(padded_bitstring)
-            
+
             # Add missing filters as all zeros
             while len(processed_cascades) < max_filters:
                 missing_idx = len(processed_cascades)
-                processed_cascades.append('0' * max_lengths[0][missing_idx])
-            
+                processed_cascades.append("0" * max_lengths[0][missing_idx])
+
             processed_X.append(processed_cascades)
-    
+
     return processed_X
+
 
 def save_to_csv(X, y, filename, pairs_mode=False):
     """Save generated data to CSV file."""
-    with open(filename, 'w', newline='') as csvfile:
-        writer = csv.writer(csvfile, delimiter=';', quoting=csv.QUOTE_NONE, escapechar='\\')
-        
+    with open(filename, "w", newline="") as csvfile:
+        writer = csv.writer(
+            csvfile, delimiter=";", quoting=csv.QUOTE_NONE, escapechar="\\"
+        )
+
         if pairs_mode:
-            writer.writerow([
-                'cascade1_bitstrings', 'cascade2_bitstrings',
-                'r1', 's1', 'r2', 's2', 'duration', 'total_tries', 'identical'
-            ])
+            writer.writerow(
+                [
+                    "cascade1_bitstrings",
+                    "cascade2_bitstrings",
+                    "r1",
+                    "s1",
+                    "r2",
+                    "s2",
+                    "duration",
+                    "total_tries",
+                    "identical",
+                ]
+            )
             for (bitstrings1, bitstrings2), metadata in zip(X, y):
-                writer.writerow([
-                    ','.join(bitstrings1),
-                    ','.join(bitstrings2),
-                    int(metadata[0]),  # r1
-                    int(metadata[1]),  # s1
-                    int(metadata[2]),  # r2
-                    int(metadata[3]),  # s2
-                    metadata[4],       # duration
-                    int(metadata[5]),  # total_tries
-                    int(metadata[6])   # identical
-                ])
+                writer.writerow(
+                    [
+                        ",".join(bitstrings1),
+                        ",".join(bitstrings2),
+                        int(metadata[0]),  # r1
+                        int(metadata[1]),  # s1
+                        int(metadata[2]),  # r2
+                        int(metadata[3]),  # s2
+                        metadata[4],  # duration
+                        int(metadata[5]),  # total_tries
+                        int(metadata[6]),  # identical
+                    ]
+                )
         else:
-            writer.writerow(['concatenated_bitstrings', 'num_included', 'num_excluded', 'duration', 'tries'])
+            writer.writerow(
+                [
+                    "concatenated_bitstrings",
+                    "num_included",
+                    "num_excluded",
+                    "duration",
+                    "tries",
+                ]
+            )
             for bitstrings, metadata in zip(X, y):
-                writer.writerow([
-                    ','.join(bitstrings),
-                    int(metadata[0]),  # num_included (r)
-                    int(metadata[1]),  # num_excluded (s)
-                    metadata[2],       # duration
-                    int(metadata[3])   # tries
-                ])
+                writer.writerow(
+                    [
+                        ",".join(bitstrings),
+                        int(metadata[0]),  # num_included (r)
+                        int(metadata[1]),  # num_excluded (s)
+                        metadata[2],  # duration
+                        int(metadata[3]),  # tries
+                    ]
+                )
+
 
 def run(params):
     """Main function to generate dataset based on provided parameters."""
     try:
         base_dir = params.get("outputDirectory", "data")
         os.makedirs(base_dir, exist_ok=True)
-        
+
         mode_dir = "pairs" if params.get("pairs_mode", False) else "single"
         output_dir = os.path.join(base_dir, mode_dir)
         os.makedirs(output_dir, exist_ok=True)
-        
+
         print(f"Generating {params['samples']} samples in {mode_dir} mode...")
-        print(f"Certificate padding to r_hat is {'enabled' if params.get('pad_to_target_size', False) else 'disabled'}")
-        
+        print(
+            f"Certificate padding is {'enabled' if params.get('use_padding', False) else 'disabled'}"
+        )
+
         start_time = time.time()
-        
-        X, y = generate_dataset_parallel(params, params['samples'])
+
+        X, y = generate_dataset_parallel(params, params["samples"])
         X_processed = process_cascade_bitstrings(
-            X, 
+            X,
             remove_header_bits=params.get("remove_header_bits", False),
-            pad_output_format=params.get("pad_output_format", False)
+            pad_output_format=params.get("pad_output_format", False),
         )
-        
+
         output_file = os.path.join(
-            output_dir,
-            f"{mode_dir}-data-{int(time.time_ns())}.csv"
+            output_dir, f"{mode_dir}-data-{int(time.time_ns())}.csv"
         )
-        
+
         save_to_csv(X_processed, y, output_file, params.get("pairs_mode", False))
-        
+
         end_time = time.time()
-        
+
         return {
             "message": (
                 f"Successfully generated {params['samples']} samples in "
@@ -373,8 +435,6 @@ def run(params):
                 f"Time taken: {end_time - start_time:.2f} seconds"
             )
         }
-    
+
     except Exception as e:
-        return {
-            "message": f"Failed to generate dataset: {str(e)}"
-        }
+        return {"message": f"Failed to generate dataset: {str(e)}"}

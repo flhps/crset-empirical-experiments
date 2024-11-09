@@ -1,6 +1,7 @@
 from src.cascade.filterCascade import FilterCascade
 import math
 
+
 class UnpaddedStatusCascade(FilterCascade):
     def __init__(
         self,
@@ -11,9 +12,7 @@ class UnpaddedStatusCascade(FilterCascade):
         multi_process=False,
     ):
         # Calculate FPRs
-        fprs = [math.sqrt(p) / 2.0, p]
-        
-        # ValidIds are positives, revokedIds are negatives
-        if len(validIds) >= len(revokedIds):
-            raise ValueError("Number of valid IDs must be less than number of revoked IDs")
-        super().__init__(validIds, revokedIds, fprs, k, multi_process)
+        fprs = [len(revokedIds) * math.sqrt(p) / len(validIds), p]
+
+        # revokedIds must be positives since they are usually less
+        super().__init__(revokedIds, validIds, fprs, k, multi_process)

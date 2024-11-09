@@ -47,4 +47,3 @@ if __name__ == "__main__":
         run_fun = JOB_DICT[job_type]
         result = run_fun(job["params"])
         print(result["message"])
-        # todo save a csv with all the values? Would do it in the respecitve jobs and only return a dict indicating metadata + success or failure

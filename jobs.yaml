@@ -1,59 +1,80 @@
 sequence:
-#  - type: cascadeTest
-#    # sanity test
-#    params:
-#      r: 100000
-#      s: 100000
-#      rhat: 100000
-#      parallelize: false
-#  - type: cascadeTest
-#    # sanity test
-#    params:
-#      r: 50000
-#      s: 100000
-#      rhat: 50000
-#      parallelize: true
-#  - type: benchStatusCascade
-#    # parameterization test
-#    params:
-#      name: "varyRhatAndP"
-#      r: 20000
-#      s: 40000
-#      rhat: [20000, 1000000, 20000]
-#      p: [0.02, 0.6, 0.02]
-#      k: 1
-#      samples: 3
-  # Dataset generation without certificate padding (unsecure)
-  - type: datasetGeneration
+  - type: cascadeTest
+    # sanity test
     params:
-      r: 10000
-      s: 20000
-      rhat: 10000  # Set to r value to avoid padding
-      pad_to_target_size: false
-      p: [0.5]
-      k: 1
-      samples: 10000
-      pairs_mode: false
-      collectRuntime: true
+      r: 100000
+      s: 100000
+      rhat: 100000
+      parallelize: false
+  - type: cascadeTest
+    # sanity test
+    params:
+      r: 50000
+      s: 100000
+      rhat: 50000
       parallelize: true
+  #  - type: benchStatusCascade
+  #    # parameterization test that we have data for already
+  #    params:
+  #      name: "varyRhatAndP"
+  #      r: 20000
+  #      s: 40000
+  #      rhat: [20000, 1000000, 20000]
+  #      p: [0.02, 0.6, 0.02]
+  #      k: 1
+  #      samples: 3
+  - type: datasetGeneration
+    # Dataset generation without certificate padding (unsecure)
+    params:
+      pairs_mode: false
+      use_padding: false
+      max_r: 1000000
+      max_s: 2000000
+      p: 0.53
+      k: 1
+      samples: 10
+      parallelize: false
       outputDirectory: "data/no_padding"
       remove_header_bits: true
       pad_output_format: true
-
-  # Dataset generation with certificate padding (secure)
   - type: datasetGeneration
+    # Dataset generation with certificate padding
     params:
-      r: 10000
-      s: 10000
-      rhat: 20000  # Larger than r to enable padding
-      pad_to_target_size: true
-      p: [0.5]
-      k: 1
-      samples: 10000
       pairs_mode: false
-      collectRuntime: false
-      parallelize: true
+      use_padding: true
+      max_rhat: 1000000
+      p: 0.53
+      k: 1
+      samples: 10
+      parallelize: false
       outputDirectory: "data/with_padding"
       remove_header_bits: true
       pad_output_format: true
-      
+  - type: datasetGeneration
+    # Dataset generation without certificate padding (unsecure)
+    params:
+      pairs_mode: true
+      use_padding: false
+      max_r: 1000000
+      max_s: 2000000
+      p: 0.53
+      k: 1
+      samples: 10
+      parallelize: false
+      outputDirectory: "data/no_padding"
+      remove_header_bits: true
+      pad_output_format: true
+  - type: datasetGeneration
+    # Dataset generation with certificate padding
+    params:
+      pairs_mode: true
+      use_padding: true
+      max_rhat: 1000000
+      p: 0.53
+      k: 1
+      samples: 10
+      parallelize: false
+      outputDirectory: "data/with_padding"
+      remove_header_bits: true
+      pad_output_format: true
+
