@@ -27,9 +27,9 @@ sequence:
     # testing mainly lookup times
     params:
       name: "benchLookup"
-      r: 20000
-      s: 2000
-      rhat: [131072, 134217728, -1] # min size bitstring, bit more than TLS valid in 2020, code for log
+      r: 20000 # irrelevant
+      s: 2000 # irrelevant
+      rhat: [131072, 8388608, -1] # min size bitstring, max size we can compute somewhat fast is 2**23, code for log
       p: 0.53
       k: 1
       samples: 3
@@ -38,11 +38,10 @@ sequence:
     params:
       pairs_mode: false
       use_padding: false
-      max_r: 1000000
-      max_s: 2000000
+      m: 262144 # since a padded cascade should have maximum 2*rhat entries
       p: 0.53
       k: 1
-      samples: 100000
+      samples: 20000
       parallelize: false
       outputDirectory: "data/no_padding"
       remove_header_bits: true
@@ -52,10 +51,10 @@ sequence:
     params:
       pairs_mode: false
       use_padding: true
-      max_rhat: 1000000
+      rhat: 131072
       p: 0.53
       k: 1
-      samples: 100000
+      samples: 20000
       parallelize: false
       outputDirectory: "data/with_padding"
       remove_header_bits: true
@@ -65,11 +64,10 @@ sequence:
     params:
       pairs_mode: true
       use_padding: false
-      max_r: 1000000
-      max_s: 2000000
+      m: 262144
       p: 0.53
       k: 1
-      samples: 100000
+      samples: 10000
       parallelize: false
       outputDirectory: "data/no_padding"
       remove_header_bits: true
@@ -79,10 +77,10 @@ sequence:
     params:
       pairs_mode: true
       use_padding: true
-      max_rhat: 1000000
+      rhat: 131072
       p: 0.53
       k: 1
-      samples: 100000
+      samples: 20000
       parallelize: false
       outputDirectory: "data/with_padding"
       remove_header_bits: true

@@ -7,6 +7,7 @@ import numpy as np
 from tqdm import tqdm
 import random
 import traceback
+import math
 
 
 def get_cascade_bitstrings(cascade):
@@ -18,19 +19,14 @@ def get_cascade_bitstrings(cascade):
     return bitstrings
 
 
-def generate_single_cascade_datapoint(
-    max_r, max_s, max_rhat, p, k, parallelize, use_padding=False
-):
-    """Generate a cascade datapoint with random r and s values.
-    For the padded cascades, we use the minimum size recommended by the Bitstring Status List for herd privacy."""
-    rhat = None
+def generate_single_cascade_datapoint(m, rhat, p, k, parallelize, use_padding=False):
+    """Generate a cascade datapoint with random r and s values."""
     if not use_padding:
-        # First pick r
-        actual_r = random.randint(1, max_r)
-        # Then pick s (must be larger than the chosen r)
-        actual_s = random.randint(actual_r, max_s)
+        rate = random.random() / 2.0  # r cannot be too large
+        actual_m = random.randint(1, m)
+        actual_r = math.ceil(rate * actual_m)
+        actual_s = actual_m - actual_r
     else:
-        rhat = random.randint(131072, max_rhat)
         # For padded case, we use StatusCascade's constraint of s <= 2*rhat
         actual_r = random.randint(1, rhat)
         actual_s = random.randint(actual_r, 2 * rhat)
@@ -59,19 +55,18 @@ def generate_single_cascade_datapoint(
 
 
 def generate_cascade_pair_datapoint(params, identical=True):
-    """Generate a pair of cascades, either identical or different.
-    For the padded cascades, we use the minimum size recommended by the Bitstring Status List for herd privacy."""
+    """Generate a pair of cascades, either identical or different."""
 
     # Handle generation based on padding mode
     use_padding = params.get("use_padding", False)
     rhat = 0
     if not use_padding:
-        # First pick r
-        actual_r = random.randint(1, params["max_r"])
-        # Then pick s (must be larger than the chosen r)
-        actual_s = random.randint(actual_r + 2, params["max_s"])
+        rate = random.random() / 2.0  # r cannot be too large
+        actual_m = random.randint(1, params["m"])
+        actual_r = math.ceil(rate * actual_m)
+        actual_s = actual_m - actual_r
     else:
-        rhat = random.randint(131072, params["max_rhat"])
+        rhat = params["rhat"]
         # For padded case, follow StatusCascade constraints
         actual_r = random.randint(1, rhat)
         actual_s = random.randint(actual_r, 2 * rhat)
@@ -113,10 +108,10 @@ def generate_cascade_pair_datapoint(params, identical=True):
         )
     else:
         if not use_padding:
-            # First pick r
-            actual_r2 = random.randint(1, params["max_r"])
-            # Then pick s (must be larger than the chosen r)
-            actual_s2 = random.randint(actual_r2 + 2, params["max_s"])
+            rate = random.random() / 2.0  # r cannot be too large
+            actual_m = random.randint(1, params["m"])
+            actual_r = math.ceil(rate * actual_m)
+            actual_s = actual_m - actual_r
         else:
             # For padded case, follow StatusCascade constraints
             actual_r2 = random.randint(1, rhat)
@@ -174,9 +169,8 @@ def generate_single_dataset(params, n_samples):
         future_to_data = {
             executor.submit(
                 generate_single_cascade_datapoint,
-                params.get("max_r", None),
-                params.get("max_s", None),
-                params.get("max_rhat", None),
+                params.get("m", None),
+                params.get("rhat", None),
                 params["p"],
                 params["k"],
                 params.get("parallelize", False),
