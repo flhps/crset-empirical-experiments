@@ -37,7 +37,7 @@ def measure_one_filter_cascade(r, s, rhat, p, k):
     for _ in range(1000 - validTests):
         assert random.choice(revokedList) not in cascade[0]
     dur1k = time.time() - start
-    return (dur, cascade[0].size_in_bits(), dur1k)
+    return (dur, cascade[0].size_in_bits(), dur1k, cascade[1])
 
 
 def measurement(r, s, rhat, p, k, samples):
@@ -102,7 +102,9 @@ def run(params):
         writer = csv.writer(
             csvfile, delimiter=";", quoting=csv.QUOTE_NONE, escapechar="\\"
         )
-        writer.writerow(["r", "s", "rhat", "p", "k", "duration", "bitsize", "lookup1k"])
+        writer.writerow(
+            ["r", "s", "rhat", "p", "k", "duration", "bitsize", "lookup1k", "tries"]
+        )
         for row in points:
             writer.writerow(row)
 

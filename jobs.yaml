@@ -29,7 +29,7 @@ sequence:
       name: "benchLookup"
       r: 20000
       s: 40000
-      rhat: [20000, 100000, 20000]
+      rhat: [20000, 10000000, 20000]
       p: 0.53
       k: 1
       samples: 3
@@ -42,7 +42,7 @@ sequence:
       max_s: 2000000
       p: 0.53
       k: 1
-      samples: 10
+      samples: 100000
       parallelize: false
       outputDirectory: "data/no_padding"
       remove_header_bits: true
@@ -55,7 +55,7 @@ sequence:
       max_rhat: 1000000
       p: 0.53
       k: 1
-      samples: 10
+      samples: 100000
       parallelize: false
       outputDirectory: "data/with_padding"
       remove_header_bits: true
@@ -69,7 +69,7 @@ sequence:
       max_s: 2000000
       p: 0.53
       k: 1
-      samples: 10
+      samples: 100000
       parallelize: false
       outputDirectory: "data/no_padding"
       remove_header_bits: true
@@ -82,7 +82,7 @@ sequence:
       max_rhat: 1000000
       p: 0.53
       k: 1
-      samples: 10
+      samples: 100000
       parallelize: false
       outputDirectory: "data/with_padding"
       remove_header_bits: true
