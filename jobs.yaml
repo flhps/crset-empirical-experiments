@@ -23,6 +23,16 @@ sequence:
   #      p: [0.02, 0.6, 0.02]
   #      k: 1
   #      samples: 3
+  - type: benchStatusCascade
+    # testing mainly lookup times
+    params:
+      name: "benchLookup"
+      r: 20000
+      s: 40000
+      rhat: [20000, 100000, 20000]
+      p: 0.53
+      k: 1
+      samples: 3
   - type: datasetGeneration
     # Dataset generation without certificate padding (unsecure)
     params:
@@ -77,4 +87,3 @@ sequence:
       outputDirectory: "data/with_padding"
       remove_header_bits: true
       pad_output_format: true
-
