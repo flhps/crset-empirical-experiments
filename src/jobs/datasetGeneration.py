@@ -28,7 +28,7 @@ def generate_single_cascade_datapoint(m, rhat, p, k, parallelize, use_padding=Fa
         actual_s = actual_m - actual_r
     else:
         # For padded case, we use StatusCascade's constraint of s <= 2*rhat
-        actual_r = random.randint(1, rhat)
+        actual_r = random.randint(1, rhat - 1)
         actual_s = random.randint(actual_r, 2 * rhat)
 
     # Generate valid IDs
@@ -68,7 +68,7 @@ def generate_cascade_pair_datapoint(params, identical=True):
     else:
         rhat = params["rhat"]
         # For padded case, follow StatusCascade constraints
-        actual_r = random.randint(1, rhat)
+        actual_r = random.randint(1, rhat - 1)
         actual_s = random.randint(actual_r, 2 * rhat)
 
     # Generate valid IDs
@@ -114,7 +114,7 @@ def generate_cascade_pair_datapoint(params, identical=True):
             actual_s = actual_m - actual_r
         else:
             # For padded case, follow StatusCascade constraints
-            actual_r2 = random.randint(1, rhat)
+            actual_r2 = random.randint(1, rhat - 1)
             actual_s2 = random.randint(actual_r2, 2 * rhat)
 
         # Generate new valid IDs
