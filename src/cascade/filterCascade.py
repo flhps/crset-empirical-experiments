@@ -9,7 +9,7 @@ import concurrent.futures
 
 def hash_func(obj):
     h = sha256(dumps(obj)).digest()
-    return int.from_bytes(h[:16], "big") - 2**127
+    return int.from_bytes(h[:16], "big", signed=True)
 
 
 def new_bloom(size, fpr, k):
