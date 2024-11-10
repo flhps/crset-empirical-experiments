@@ -50,7 +50,8 @@ def measurement(r, s, rhat, p, k, samples):
     dur = statistics.median(map(lambda a: a[0], res))
     size = statistics.median(map(lambda a: a[1], res))
     dur1k = statistics.median(map(lambda a: a[2], res))
-    return (r, s, rhat, p, k, dur, size, dur1k)
+    tries = statistics.median(map(lambda a: a[3], res))
+    return (r, s, rhat, p, k, dur, size, dur1k, tries)
 
 
 def run(params):

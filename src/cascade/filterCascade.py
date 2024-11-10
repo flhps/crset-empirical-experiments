@@ -13,9 +13,10 @@ def hash_func(obj):
 
 
 def new_bloom(size, fpr, k):
+    minsize = max(size, 1024)  # avoid all the failures on low cascade levels
     if k is None:
-        return Bloom(size, fpr, hash_func)
-    return Bloom(size, fpr, hash_func, k)
+        return Bloom(minsize, fpr, hash_func)
+    return Bloom(minsize, fpr, hash_func, k)
 
 
 def build_cascade_part(positives, size, fpr, k, salt):
@@ -63,7 +64,7 @@ class FilterCascade:
                 and self.filters[-1].size_in_bits >= self.filters[-2].size_in_bits
             ):
                 cons_non_improvements += 1
-                if cons_non_improvements > 5:
+                if cons_non_improvements > 10:
                     raise Exception("Cascade cannot solve")
             else:
                 cons_non_improvements = 0
