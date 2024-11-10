@@ -16,7 +16,10 @@ def prep_range(a):
         acc = a[0]
         while acc <= a[1]:
             lst.append(acc)
-            acc = acc + a[2]
+            if a[2] == -1:
+                acc = acc * 2
+            else:
+                acc = acc + a[2]
         return lst
     else:
         return [a]

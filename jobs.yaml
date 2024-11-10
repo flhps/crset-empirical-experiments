@@ -28,8 +28,8 @@ sequence:
     params:
       name: "benchLookup"
       r: 20000
-      s: 40000
-      rhat: [20000, 10000000, 20000]
+      s: 2000
+      rhat: [131072, 134217728, -1] # min size bitstring, bit more than TLS valid in 2020, code for log
       p: 0.53
       k: 1
       samples: 3
