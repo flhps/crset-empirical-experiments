@@ -124,10 +124,50 @@ class FilterCascade:
 
     def count_set_bits(self):
         return sum(format(i, "08b").count("1") for i in self.filters[0].save_bytes())
+    
+    def size_in_bits(self):
+        size = 0
+        for bf in self.filters:
+            size = size + bf.size_in_bits
+        return size
 
-    def calculate_entropy(self):
-        s = "".join(format(i, "08b") for i in self.filters[0].save_bytes())
-        p, lns = Counter(s), float(len(s))
-        return (
-            math.log2(lns) - sum(count * math.log2(count) for count in p.values()) / lns
-        )
+    def get_filter_sizes(self):
+        return [bf.size_in_bits for bf in self.filters]
+
+    def count_set_bits_per_filter(self):
+        return [
+            sum(format(i, "08b").count("1") for i in bf.save_bytes())
+            for bf in self.filters
+        ]
+
+    def get_vector(self):
+        """
+        Get a vector representation of the cascade focusing on first three filters.
+        
+        Returns a list containing:
+        [0] Total size in bits
+        [1] Number of filters
+        [2] First filter size in bits
+        [3] Second filter size in bits (0 if not present)
+        [4] Third filter size in bits (0 if not present)
+        [5] Set bits in first filter
+        [6] Set bits in second filter (0 if not present)
+        [7] Set bits in third filter (0 if not present)
+        """
+        filter_sizes = self.get_filter_sizes()
+        set_bits = self.count_set_bits_per_filter()
+        
+        # Ensure we have values for up to 3 filters, padding with 0s if needed
+        sizes = filter_sizes[:3] + [0] * (3 - len(filter_sizes))
+        bits = set_bits[:3] + [0] * (3 - len(set_bits))
+        
+        return [
+            float(self.size_in_bits()),
+            float(len(self.filters)),
+            float(sizes[0]),
+            float(sizes[1]),
+            float(sizes[2]),
+            float(bits[0]),
+            float(bits[1]),
+            float(bits[2])
+        ]

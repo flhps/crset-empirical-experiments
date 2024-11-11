@@ -1,18 +1,18 @@
 sequence:
-  - type: cascadeTest
-    # sanity test
-    params:
-      r: 100000
-      s: 100000
-      rhat: 100000
-      parallelize: false
-  - type: cascadeTest
-    # sanity test
-    params:
-      r: 50000
-      s: 100000
-      rhat: 50000
-      parallelize: true
+  # - type: cascadeTest
+  #   # sanity test
+  #   params:
+  #     r: 100000
+  #     s: 100000
+  #     rhat: 100000
+  #     parallelize: false
+  # - type: cascadeTest
+  #   # sanity test
+  #   params:
+  #     r: 50000
+  #     s: 100000
+  #     rhat: 50000
+  #     parallelize: true
   #  - type: benchStatusCascade
   #    # parameterization test that we have data for already
   #    params:
@@ -23,25 +23,25 @@ sequence:
   #      p: [0.02, 0.6, 0.02]
   #      k: 1
   #      samples: 3
-  - type: benchStatusCascade
-    # testing mainly lookup times
-    params:
-      name: "benchLookup"
-      r: 20000 # irrelevant
-      s: 2000 # irrelevant
-      rhat: [131072, 8388608, -1] # min size bitstring, max size we can compute somewhat fast is 2**23, code for log
-      p: 0.53
-      k: 1
-      samples: 3
+  # - type: benchStatusCascade
+  #   # testing mainly lookup times
+  #   params:
+  #     name: "benchLookup"
+  #     r: 20000 # irrelevant
+  #     s: 2000 # irrelevant
+  #     rhat: [131072, 8388608, -1] # min size bitstring, max size we can compute somewhat fast is 2**23, code for log
+  #     p: 0.53
+  #     k: 1
+  #     samples: 3
   - type: datasetGeneration
     # Dataset generation without certificate padding (unsecure)
     params:
       pairs_mode: false
       use_padding: false
-      m: 262144 # since a padded cascade should have maximum 2*rhat entries
+      m: 2621 # since a padded cascade should have maximum 2*rhat entries
       p: 0.53
       k: 1
-      samples: 20000
+      samples: 2000
       parallelize: false
       outputDirectory: "data/no_padding"
       remove_header_bits: true
@@ -51,10 +51,10 @@ sequence:
     params:
       pairs_mode: false
       use_padding: true
-      rhat: 131072
+      rhat: 1310
       p: 0.53
       k: 1
-      samples: 20000
+      samples: 2000
       parallelize: false
       outputDirectory: "data/with_padding"
       remove_header_bits: true
@@ -64,10 +64,10 @@ sequence:
     params:
       pairs_mode: true
       use_padding: false
-      m: 262144
+      m: 2621
       p: 0.53
       k: 1
-      samples: 10000
+      samples: 1000
       parallelize: false
       outputDirectory: "data/no_padding"
       remove_header_bits: true
@@ -77,10 +77,10 @@ sequence:
     params:
       pairs_mode: true
       use_padding: true
-      rhat: 131072
+      rhat: 1310
       p: 0.53
       k: 1
-      samples: 20000
+      samples: 2000
       parallelize: false
       outputDirectory: "data/with_padding"
       remove_header_bits: true
