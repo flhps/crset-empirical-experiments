@@ -30,9 +30,9 @@ def generate_single_cascade_datapoint(m, rhat, p, k, parallelize, use_padding=Fa
     if not use_padding:
         (actual_r, actual_s) = random_sum_below(m)
     else:
-        # For padded case, we use StatusCascade's constraint of s <= 2*rhat
         # making it as comparable as possible by inheriting the limited value range
-        (actual_r, actual_s) = random_sum_below(2 * rhat)
+        actual_r = random.randint(1, rhat)
+        actual_s = random.randint(1, 2 * rhat)
 
     # Generate valid IDs
     valid_ids = cu.gen_ids(actual_r if use_padding else actual_s)
@@ -67,7 +67,8 @@ def generate_cascade_pair_datapoint(params, identical=True):
         (actual_r, actual_s) = random_sum_below(params["m"])
     else:
         rhat = params["rhat"]
-        (actual_r, actual_s) = random_sum_below(2 * rhat)
+        actual_r = random.randint(1, rhat)
+        actual_s = random.randint(1, 2 * rhat)
 
     # Generate valid IDs
     valid_ids = cu.gen_ids(actual_r if use_padding else actual_s)
@@ -108,7 +109,8 @@ def generate_cascade_pair_datapoint(params, identical=True):
         if not use_padding:
             (actual_r, actual_s) = random_sum_below(params["m"])
         else:
-            (actual_r, actual_s) = random_sum_below(2 * rhat)
+            actual_r = random.randint(1, rhat)
+            actual_s = random.randint(1, 2 * rhat)
 
         # Generate new valid IDs
         valid_ids2 = cu.gen_ids(actual_r2 if use_padding else actual_s2)

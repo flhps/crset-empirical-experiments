@@ -51,7 +51,7 @@ sequence:
     params:
       pairs_mode: false
       use_padding: true
-      rhat: 131072
+      rhat: 131072 # max number of valid ids
       p: 0.53
       k: 1
       samples: 10000
