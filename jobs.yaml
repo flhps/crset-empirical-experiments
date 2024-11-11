@@ -80,7 +80,7 @@ sequence:
       rhat: 131072
       p: 0.53
       k: 1
-      samples: 20000
+      samples: 10000
       parallelize: false
       outputDirectory: "data/with_padding"
       remove_header_bits: true
