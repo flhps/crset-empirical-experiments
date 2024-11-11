@@ -38,7 +38,7 @@ sequence:
     params:
       pairs_mode: false
       use_padding: false
-      m: 131072 # since a padded cascade should have maximum 2*rhat entries
+      m: 131072 # turns into maximum number of valid ids
       p: 0.53
       k: 1
       samples: 10000
@@ -51,7 +51,7 @@ sequence:
     params:
       pairs_mode: false
       use_padding: true
-      rhat: 65536
+      rhat: 131072
       p: 0.53
       k: 1
       samples: 10000
@@ -77,7 +77,7 @@ sequence:
     params:
       pairs_mode: true
       use_padding: true
-      rhat: 65536
+      rhat: 131072
       p: 0.53
       k: 1
       samples: 10000
