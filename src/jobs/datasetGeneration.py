@@ -22,14 +22,13 @@ def get_cascade_bitstrings(cascade):
 def generate_single_cascade_datapoint(m, rhat, p, k, parallelize, use_padding=False):
     """Generate a cascade datapoint with random r and s values."""
     if not use_padding:
-        rate = random.random() / 2.0  # r cannot be too large
         actual_m = random.randint(1, m)
-        actual_r = math.ceil(rate * actual_m)
+        actual_r = random.randint(1, actual_m // 2)  # r cannot be too large
         actual_s = actual_m - actual_r
     else:
         # For padded case, we use StatusCascade's constraint of s <= 2*rhat
-        actual_r = random.randint(1, rhat - 1)
-        actual_s = random.randint(actual_r, 2 * rhat)
+        actual_r = random.randint(1, rhat)
+        actual_s = random.randint(1, 2 * rhat)
 
     # Generate valid IDs
     valid_ids = cu.gen_ids(actual_r if use_padding else actual_s)
@@ -61,15 +60,14 @@ def generate_cascade_pair_datapoint(params, identical=True):
     use_padding = params.get("use_padding", False)
     rhat = 0
     if not use_padding:
-        rate = random.random() / 2.0  # r cannot be too large
         actual_m = random.randint(1, params["m"])
-        actual_r = math.ceil(rate * actual_m)
+        actual_r = random.randint(1, actual_m // 2)  # r cannot be too large
         actual_s = actual_m - actual_r
     else:
         rhat = params["rhat"]
         # For padded case, follow StatusCascade constraints
-        actual_r = random.randint(1, rhat - 1)
-        actual_s = random.randint(actual_r, 2 * rhat)
+        actual_r = random.randint(1, rhat)
+        actual_s = random.randint(1, 2 * rhat)
 
     # Generate valid IDs
     valid_ids = cu.gen_ids(actual_r if use_padding else actual_s)
@@ -108,14 +106,13 @@ def generate_cascade_pair_datapoint(params, identical=True):
         )
     else:
         if not use_padding:
-            rate = random.random() / 2.0  # r cannot be too large
             actual_m = random.randint(1, params["m"])
-            actual_r = math.ceil(rate * actual_m)
+            actual_r = random.randint(1, actual_m // 2)  # r cannot be too large
             actual_s = actual_m - actual_r
         else:
             # For padded case, follow StatusCascade constraints
-            actual_r2 = random.randint(1, rhat - 1)
-            actual_s2 = random.randint(actual_r2, 2 * rhat)
+            actual_r = random.randint(1, rhat)
+            actual_s = random.randint(1, 2 * rhat)
 
         # Generate new valid IDs
         valid_ids2 = cu.gen_ids(actual_r2 if use_padding else actual_s2)
