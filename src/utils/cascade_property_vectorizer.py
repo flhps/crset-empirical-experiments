@@ -32,8 +32,8 @@ def get_vector_from_string(bitstring):
     filters = [f for f in bitstring.split(',') if f]
     
     # Get sizes and set bits for filters
-    filter_sizes = get_filter_sizes(filters)
-    set_bits = count_set_bits_per_filter(filters)
+    filter_sizes = get_filter_sizes(filter_sizes[:3])
+    set_bits = count_set_bits_per_filter(filter_sizes[:3])
     
     # Ensure we have values for up to 3 filters, padding with 0s if needed
     sizes = filter_sizes[:3] + [0] * (3 - len(filter_sizes))
