@@ -3,7 +3,6 @@ import secrets
 from hashlib import sha256
 from pickle import dumps
 import math
-from collections import Counter
 import concurrent.futures
 
 
@@ -124,12 +123,6 @@ class FilterCascade:
 
     def count_set_bits(self):
         return sum(format(i, "08b").count("1") for i in self.filters[0].save_bytes())
-    
-    def size_in_bits(self):
-        size = 0
-        for bf in self.filters:
-            size = size + bf.size_in_bits
-        return size
 
     def get_filter_sizes(self):
         return [bf.size_in_bits for bf in self.filters]
@@ -143,7 +136,7 @@ class FilterCascade:
     def get_vector(self):
         """
         Get a vector representation of the cascade focusing on first three filters.
-        
+
         Returns a list containing:
         [0] Total size in bits
         [1] Number of filters
@@ -156,11 +149,11 @@ class FilterCascade:
         """
         filter_sizes = self.get_filter_sizes()
         set_bits = self.count_set_bits_per_filter()
-        
+
         # Ensure we have values for up to 3 filters, padding with 0s if needed
         sizes = filter_sizes[:3] + [0] * (3 - len(filter_sizes))
         bits = set_bits[:3] + [0] * (3 - len(set_bits))
-        
+
         return [
             float(self.size_in_bits()),
             float(len(self.filters)),
@@ -169,5 +162,6 @@ class FilterCascade:
             float(sizes[2]),
             float(bits[0]),
             float(bits[1]),
-            float(bits[2])
+            float(bits[2]),
         ]
+
