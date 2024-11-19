@@ -38,14 +38,14 @@ sequence:
     params:
       pairs_mode: false
       use_padding: false
-      m: 131072 # turns into maximum number of valid ids
-      p: 0.53
+      m: 100000 # turns into maximum number of valid ids
+      p: 0.50
       k: 1
-      samples: 10000
+      samples: 1000
       parallelize: false
       outputDirectory: "data/no_padding"
       remove_header_bits: true
-      pad_output_format: true
+      pad_output_format: false
   - type: datasetGeneration
     # Dataset generation with certificate padding
     params:

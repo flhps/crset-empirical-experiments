@@ -20,9 +20,10 @@ def get_cascade_bitstrings(cascade):
 
 def random_sum_below(limit):
     # independent and equally distributed while a<b
-    a = random.randint(1, limit // 2)
-    b = random.randint(limit // 2, limit)
-    return (a, b)
+    # a = random.randint(1, limit // 2)
+    # b = random.randint(limit // 2, limit)
+    # return (a, b)
+    return (limit // 2, limit)
 
 
 def generate_single_cascade_datapoint(m, rhat, p, k, parallelize, use_padding=False):
