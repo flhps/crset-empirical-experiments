@@ -51,5 +51,5 @@ def get_vector_from_string(bitstring):
         float(bits[0]),
         float(bits[1]),
         float(bits[2]),
+        float(sizes[0] / sizes[1]),
     ]
-
