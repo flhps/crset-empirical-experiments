@@ -65,12 +65,3 @@ def try_cascade(
         )
     return (cascade, tries + 1)
 
-
-def vectorize_cascade(cascade):
-    return [
-        float(cascade.size_in_bits()),
-        float(len(cascade.filters)),
-        float(cascade.filters[0].size_in_bits),
-        float(cascade.count_set_bits()),
-        cascade.calculate_entropy(),
-    ]
