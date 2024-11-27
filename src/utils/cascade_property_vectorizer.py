@@ -1,3 +1,6 @@
+import base64
+
+
 def get_size_in_bits(filters):
     """Total size of all filters in bits."""
     return sum(len(f) for f in filters)
@@ -11,6 +14,12 @@ def get_filter_sizes(filters):
 def count_set_bits_per_filter(filters):
     """Count set bits in each filter."""
     return [sum(1 for bit in filter if bit == "1") for filter in filters]
+
+
+def compact_string_to_bitstring(compact_string):
+    """Converts a compact base64 string without headers back to a byte array (without rbloom header)."""
+    cascade = base64.urlsafe_b64decode(compact_string)
+    return "".join(format(byte, "08b") for byte in cascade)
 
 
 def get_vector_from_string(bitstring):
@@ -32,7 +41,7 @@ def get_vector_from_string(bitstring):
         [7] Set bits in third filter (0 if not present)
     """
     # Parse the string into individual filters
-    filters = [f for f in bitstring.split(",") if f]
+    filters = [compact_string_to_bitstring(f) for f in bitstring.split(",") if f]
 
     # Get sizes and set bits for filters
     filter_sizes = get_filter_sizes(filters[:3])
@@ -41,6 +50,8 @@ def get_vector_from_string(bitstring):
     # Ensure we have values for up to 3 filters, padding with 0s if needed
     sizes = filter_sizes + [0] * (3 - len(filter_sizes))
     bits = set_bits + [0] * (3 - len(set_bits))
+
+    #assert sizes[0] == len(filters[0]) * 6
 
     return [
         float(get_size_in_bits(filters)),

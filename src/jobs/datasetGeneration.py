@@ -7,6 +7,7 @@ import numpy as np
 from tqdm import tqdm
 import random
 import traceback
+import base64
 
 
 def get_cascade_bitstrings(cascade):
@@ -20,7 +21,8 @@ def get_cascade_bitstrings(cascade):
 
 def random_sum_below(limit):
     # independent and equally distributed while a<b
-    a = random.randint(1, limit // 2)
+    # a = random.randint(1, limit // 2)
+    a = random.randint(limit // 4, limit // 2)
     # b = random.randint(limit // 2, limit)
     b = limit // 2
     return (a, b)
@@ -218,7 +220,7 @@ def generate_pairs_dataset(params, n_samples):
     return X, y
 
 
-def process_cascade_bitstrings(X, remove_header_bits=False, pad_output_format=False):
+def process_cascade_bitstrings(X, pad_output_format=False):
     """Process cascade bitstrings with optional header bit removal and format padding."""
     processed_X = []
 
@@ -230,19 +232,19 @@ def process_cascade_bitstrings(X, remove_header_bits=False, pad_output_format=Fa
                 for cascade_set in sample:
                     processed_cascades = []
                     for cascade in cascade_set:
-                        bitstring = "".join(format(byte, "08b") for byte in cascade)
-                        if remove_header_bits:
-                            bitstring = bitstring[64:]
-                        processed_cascades.append(bitstring)
+                        encoded_string = base64.urlsafe_b64encode(cascade[8:]).decode(
+                            "utf-8"
+                        )
+                        processed_cascades.append(encoded_string)
                     processed_sample.append(processed_cascades)
                 processed_X.append(processed_sample)
             else:  # Single mode
                 processed_cascades = []
                 for cascade in sample:
-                    bitstring = "".join(format(byte, "08b") for byte in cascade)
-                    if remove_header_bits:
-                        bitstring = bitstring[64:]
-                    processed_cascades.append(bitstring)
+                    encoded_string = base64.urlsafe_b64encode(cascade[8:]).decode(
+                        "utf-8"
+                    )
+                    processed_cascades.append(encoded_string)
                 processed_X.append(processed_cascades)
         return processed_X
 
@@ -268,17 +270,13 @@ def process_cascade_bitstrings(X, remove_header_bits=False, pad_output_format=Fa
         if isinstance(sample[0], list):  # Pairs mode
             for cascade_idx, cascade_set in enumerate(sample):
                 for filter_idx, cascade in enumerate(cascade_set):
-                    bitstring = "".join(format(byte, "08b") for byte in cascade)
-                    if remove_header_bits:
-                        bitstring = bitstring[64:]
+                    bitstring = "".join(format(byte, "08b") for byte in cascade)[64:]
                     max_lengths[cascade_idx][filter_idx] = max(
                         max_lengths[cascade_idx][filter_idx], len(bitstring)
                     )
         else:  # Single mode
             for filter_idx, cascade in enumerate(sample):
-                bitstring = "".join(format(byte, "08b") for byte in cascade)
-                if remove_header_bits:
-                    bitstring = bitstring[64:]
+                bitstring = "".join(format(byte, "08b") for byte in cascade)[64:]
                 max_lengths[0][filter_idx] = max(
                     max_lengths[0][filter_idx], len(bitstring)
                 )
@@ -291,9 +289,7 @@ def process_cascade_bitstrings(X, remove_header_bits=False, pad_output_format=Fa
                 processed_cascades = []
                 # Process existing filters
                 for filter_idx, cascade in enumerate(cascade_set):
-                    bitstring = "".join(format(byte, "08b") for byte in cascade)
-                    if remove_header_bits:
-                        bitstring = bitstring[64:]
+                    bitstring = "".join(format(byte, "08b") for byte in cascade)[64:]
                     padded_bitstring = bitstring.ljust(
                         max_lengths[cascade_idx][filter_idx], "0"
                     )
@@ -313,9 +309,7 @@ def process_cascade_bitstrings(X, remove_header_bits=False, pad_output_format=Fa
             processed_cascades = []
             # Process existing filters
             for filter_idx, cascade in enumerate(sample):
-                bitstring = "".join(format(byte, "08b") for byte in cascade)
-                if remove_header_bits:
-                    bitstring = bitstring[64:]
+                bitstring = "".join(format(byte, "08b") for byte in cascade)[64:]
                 padded_bitstring = bitstring.ljust(max_lengths[0][filter_idx], "0")
                 processed_cascades.append(padded_bitstring)
 
@@ -406,7 +400,6 @@ def run(params):
         X, y = generate_dataset_parallel(params, params["samples"])
         X_processed = process_cascade_bitstrings(
             X,
-            remove_header_bits=params.get("remove_header_bits", False),
             pad_output_format=params.get("pad_output_format", False),
         )
 
