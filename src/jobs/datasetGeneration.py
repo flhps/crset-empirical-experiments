@@ -1,5 +1,6 @@
 import src.cascade.cascadeUtils as cu
 import concurrent.futures
+import multiprocessing
 import csv
 import time
 import os
@@ -163,7 +164,10 @@ def generate_single_dataset(params, n_samples):
     X = []
     y = np.empty([n_samples, 4])  # [r, s, duration, tries]
 
-    with concurrent.futures.ProcessPoolExecutor() as executor:
+    m = multiprocessing.Manager()
+    lock = m.Lock()
+
+    with concurrent.futures.ProcessPoolExecutor(max_workers=1) as executor:
         future_to_data = {
             executor.submit(
                 generate_single_cascade_datapoint,
@@ -181,10 +185,13 @@ def generate_single_dataset(params, n_samples):
             for future in concurrent.futures.as_completed(future_to_data):
                 i = future_to_data[future]
                 try:
+                    # this could be a race condition!!!! aggregate first and then split in x and y
                     bitstrings, metadata = future.result()
+                    lock.acquire()
                     X.append(bitstrings)
                     y[i, :] = metadata
                     pbar.update(1)
+                    lock.release()
                 except Exception as exc:
                     traceback.print_exc()
                     print(f"Sample {i} generated an exception: {exc}")
