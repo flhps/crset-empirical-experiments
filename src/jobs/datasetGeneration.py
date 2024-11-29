@@ -21,10 +21,10 @@ def get_cascade_bitstrings(cascade):
 
 def random_sum_below(limit):
     # independent and equally distributed while a<b
-    # a = random.randint(1, limit // 2)
-    a = random.randint(limit // 4, limit // 2)
-    # b = random.randint(limit // 2, limit)
-    b = limit // 2
+    a = random.randint(1, limit // 2)
+    # a = random.randint(limit // 4, limit // 2)
+    b = random.randint(limit // 2, limit)
+    # b = limit // 2
     return (a, b)
 
 
