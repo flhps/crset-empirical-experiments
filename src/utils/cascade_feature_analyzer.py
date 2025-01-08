@@ -13,14 +13,6 @@ from scipy import stats
 from tabulate import tabulate
 
 def calculate_pattern_entropy_features(bitstring_data: str) -> Dict[str, float]:
-    """
-    Calculate pattern entropy features from bitstring data.
-    
-    Args:
-        bitstring_data: Comma-separated bitstrings
-    Returns:
-        Dictionary of pattern entropy features
-    """
     features = {}
     filters = bitstring_data.split(',')
     
@@ -73,14 +65,6 @@ def calculate_pattern_entropy_features(bitstring_data: str) -> Dict[str, float]:
     return features
 
 def calculate_distribution_features(bitstring_data: str) -> Dict[str, float]:
-    """
-    Calculate distribution features from bitstring data.
-    
-    Args:
-        bitstring_data: Comma-separated bitstrings
-    Returns:
-        Dictionary of distribution features
-    """
     features = {}
     filters = bitstring_data.split(',')
     
@@ -128,14 +112,6 @@ def calculate_distribution_features(bitstring_data: str) -> Dict[str, float]:
     return features
 
 def calculate_statistical_features(bitstring_data: str) -> Dict[str, float]:
-    """
-    Calculate statistical features from bitstring data.
-    
-    Args:
-        bitstring_data: Comma-separated bitstrings
-    Returns:
-        Dictionary of statistical features
-    """
     features = {}
     filters = bitstring_data.split(',')
     
@@ -190,14 +166,6 @@ def calculate_statistical_features(bitstring_data: str) -> Dict[str, float]:
     return features
 
 def calculate_structural_features(bitstring_data: str) -> Dict[str, float]:
-    """
-    Calculate structural features from bitstring data.
-    
-    Args:
-        bitstring_data: Comma-separated bitstrings
-    Returns:
-        Dictionary of structural features
-    """
     features = {}
     filters = bitstring_data.split(',')
     
@@ -266,14 +234,6 @@ def calculate_structural_features(bitstring_data: str) -> Dict[str, float]:
     return features
 
 def process_file(input_file: str) -> pd.DataFrame:
-    """
-    Process a single CSV file and extract all features.
-    
-    Args:
-        input_file: Path to input CSV file
-    Returns:
-        DataFrame with extracted features
-    """
     # Read the input CSV file
     try:
         df = pd.read_csv(input_file, sep=';')
@@ -311,10 +271,8 @@ def process_file(input_file: str) -> pd.DataFrame:
     return pd.DataFrame(processed_rows)
 
 def print_feature_statistics(df: pd.DataFrame):
-    """Print formatted statistics for each feature type."""
     
     def get_feature_stats(feature_names: List[str], df: pd.DataFrame) -> List[List]:
-        """Calculate statistics for a group of features."""
         stats = []
         for feature in feature_names:
             values = df[feature].values
@@ -349,27 +307,3 @@ def print_feature_statistics(df: pd.DataFrame):
             tablefmt='grid'
         ))
         print()
-
-def main():
-    # Hardcoded input and output paths
-    input_file = "./data/single/single-data-1730299231536148400.csv"
-    output_file = "./data/feature_data/sample_processed.csv"  # Replace with your output file path
-    
-    try:
-        # Process file
-        result_df = process_file(input_file)
-        
-        # Print statistics
-        print_feature_statistics(result_df)
-        
-        # Save results
-        Path(output_file).parent.mkdir(parents=True, exist_ok=True)
-        result_df.to_csv(output_file, index=False)
-        print(f"\nSaved processed data to: {output_file}")
-            
-    except Exception as e:
-        print(f"Error processing file: {e}")
-        sys.exit(1)
-
-if __name__ == "__main__":
-    main()

@@ -25,7 +25,6 @@ def build_cascade_part(positives, size, fpr, k, salt):
     return bloom.save_bytes()
 
 
-# making sure code runs on python versions before 3.12
 def batched(lst, n):
     if n < 1:
         raise ValueError("n must be at least one")

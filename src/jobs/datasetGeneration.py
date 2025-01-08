@@ -33,7 +33,6 @@ def generate_single_cascade_datapoint(m, rhat, p, k, parallelize, use_padding=Fa
     if not use_padding:
         (actual_r, actual_s) = random_sum_below(m)
     else:
-        # making it as comparable as possible by inheriting the limited value range
         actual_r = random.randint(1, rhat)
         actual_s = random.randint(1, 2 * rhat)
 
@@ -353,7 +352,7 @@ def save_to_csv(X, y, filename, pairs_mode=False):
                         int(metadata[1]),  # s1
                         int(metadata[2]),  # r2
                         int(metadata[3]),  # s2
-                        metadata[4],  # duration
+                        metadata[4],       # duration
                         int(metadata[5]),  # total_tries
                         int(metadata[6]),  # identical
                     ]
@@ -374,7 +373,7 @@ def save_to_csv(X, y, filename, pairs_mode=False):
                         ",".join(bitstrings),
                         int(metadata[0]),  # num_included (r)
                         int(metadata[1]),  # num_excluded (s)
-                        metadata[2],  # duration
+                        metadata[2],       # duration
                         int(metadata[3]),  # tries
                     ]
                 )
