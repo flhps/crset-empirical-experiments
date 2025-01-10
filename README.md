@@ -14,6 +14,8 @@ Install the required dependencies:
 pip install -r requirements.txt
 ```
 
+Additionally, the customized version of the rbloom library must be installed.
+
 ## Configuration
 
 The script uses a YAML configuration file (config.yaml) to set various parameters. Create this file in the same directory as the script.
