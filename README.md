@@ -1,10 +1,20 @@
-# Dataset Generator for Verifiable Credential Revocation
+# CRSet: Privacy-Preserving Credential Revocation Dataset Generator
 
-This script generates datasets for the research paper "Metadata Privacy for Verifiable Credential Revocation". It creates raw Bloom filter cascade data structures along with information to test privacy guarantees for Verifiable Credentials (VCs) revocation mechanisms.
+This repository contains the dataset generation code for the research paper "CRSet: Non-Interactive Verifiable Credential Revocation with Metadata Privacy for Issuers and Everyone Else". It generates Bloom filter cascade data structures to evaluate privacy guarantees and performance characteristics of the CRSet credential revocation mechanism.
 
 ## Background
 
-This tool supports research on revocation mechanisms for Self-Sovereign Identity (SSI) systems. It addresses the challenge of allowing anyone to query the status of a single VC while preventing inference about the wider set of issued or revoked VCs. The generated datasets represent raw data structures and associated metadata for privacy analysis.
+This tool supports research on privacy-preserving revocation mechanisms for Self-Sovereign Identity (SSI) systems. CRSet allows anyone to verify the revocation status of individual Verifiable Credentials while preventing inference about issuer metrics like total issuance volume or revocation patterns. The generator creates test datasets for analyzing both privacy guarantees and performance characteristics.
+
+## Features
+
+- Generate Bloom filter cascades with configurable parameters
+- Support for privacy-preserving padding
+- Parallel processing capabilities
+- Flexible output formats for machine learning analysis
+- Performance benchmarking tools
+- Support for both single cascade and paired cascade generation
+
 
 ## Setup
 
@@ -14,78 +24,105 @@ Install the required dependencies:
 pip install -r requirements.txt
 ```
 
-Additionally, the customized version of the rbloom library must be installed.
+You'll also need to install the custom version of the rbloom library for Bloom filter operations ([redacted for anonymazation](https://anonymous.4open.science/r/rbloom-A54D/README.md)).
+
+## Dataset Generation Modes
+
+The generator supports multiple modes configured via `jobs.yaml`:
+
+### Single Cascade Mode
+
+Generates individual Bloom filter cascades with configurable parameters:
+
+- With/without padding for privacy protection
+- Configurable false positive rates and cascade sizes
+- Metadata tracking revocations and construction metrics
+
+### Pair Generation Mode
+
+Creates pairs of cascades for analyzing cascade comparability:
+
+- Pairs can be from same or different parameter sets
+- Optional padding for privacy analysis
+- Includes classification labels for relationship between pairs
 
 ## Configuration
 
-The script uses a YAML configuration file (config.yaml) to set various parameters. Create this file in the same directory as the script.
-Configuration fields:
+Key parameters in `jobs.yaml`:
 
-- `job_type`: Determines the mode of operation for the script.
-  - "series": Generates individual Bloom filter cascade bitstrings along with the number of revocations.
-  - "classification": Generates pairs of Bloom filter cascade bitstrings with a label indicating whether they were created using the same or different parameterizations.
-- `output_directory`: Specifies where the generated CSV file will be saved.
-- `maxinc`: Maximum number of inclusions (revocations) in a data structure.
-- `maxexc`: Maximum number of exclusions (non-revoked VCs) in a data structure.
-- `n_samples`: Number of samples to generate.
-- `fprs`: False Positive Rate targets. Default is [0.006] if not specified.
-- `max_workers`: Number of workers for concurrent processing.
-- `padding`: Enable (true) or disable (false) padding for consistent data dimensions. When enabled, this brings each sample to the same format for use as input in deep learning models to empirically check privacy guarantees.
+```yaml
+datasetGeneration:
+  params:
+    pairs_mode: bool        # Generate pairs or single cascades
+    use_padding: bool       # Enable privacy-preserving padding
+    rhat: int               # Target capacity for valid credentials
+    p: float                # False positive rate (typically 0.53)
+    k: int                  # Number of hash functions
+    samples: int            # Number of samples to generate
+    parallelize: bool       # Enable parallel generation
+    outputDirectory: str    # Output directory path
+    pad_output_format: bool # Pad output to consistent dimensions
+```
 
-## Usage
+## Output Format
 
-Run the script with:
+Generated CSV files contain:
 
-```sh
+### Single Mode
+
+```
+concatenated_bitstrings,num_included,num_excluded,duration,tries
+```
+
+Where:
+
+- concatenated_bitstrings: Base64-encoded Bloom filter cascade
+- num_included: Number of valid credentials
+- num_excluded: Number of revoked credentials
+- num_excluded: Number of revoked credentials
+- tries: Number of attempts needed for successful construction
+
+### Pairs Mode
+
+```
+cascade1_bitstrings,cascade2_bitstrings,r1,s1,r2,s2,duration,total_tries,identical
+```
+
+Where:
+
+- cascade1_bitstrings: First Bloom filter cascade
+- cascade2_bitstrings: Second Bloom filter cascade
+- r1, r2: Number of valid credentials for each cascade
+- s1, s2: Number of revoked credentials for each cascade
+- duration: Total construction time
+- total_tries: Combined construction attempts
+- identical: Boolean indicating if cascades were generated with same parameters
+
+### Usage
+
+1. Configure your experiment in `jobs.yaml`
+2. Run the dataset generator:
+
+```ssh
 python data_generator.py
 ```
 
-The script will read the configuration, generate the dataset, and save it to a CSV file in the specified output directory.
+The script will:
 
-## Data Generation Process
+1. Read the job configuration
+2. Generate datasets according to specified parameters
+3. Save output files to the configured directory
 
-1. Data Structure Creation:
+## Advanced Usage
 
-- For "series": Generates individual Bloom filter cascade bitstrings with associated number of revocations and non-revoked VCs.
-- For "classification": Generates pairs of Bloom filter cascade bitstrings with a label indicating if they were created using the same or different parameterizations.
+### Benchmarking
 
-2. Padding (Optional):
+The tool includes benchmarking capabilities for:
 
-- If enabled, ensures all samples have consistent dimensions by padding to the maximum number of cascades and maximum length.
-- Prepares data for input into deep learning models for empirical privacy guarantee checks.
+- Construction time analysis
+- Cascade size optimization
 
-3. CSV Output:
+### Privacy Analysis
 
-- For "series": Each row contains the Bloom filter cascade bitstrings, number of revocations, and number of non-revoked VCs.
-- For "classification": Each row contains two Bloom filter cascade bitstrings and a classification label."
-
-## CSV Output Format
-
-The generated CSV files will be stored in the `data` directory within the project folder.
-
-### Series Job Type
-
-Each row contains:
-
-- Bloom filter cascade bitstrings
-- Number of revocations
-- Number of non-revoked VCs
-
-Example:
-
-```
-00000111000000000000000000000000...,00000111000000000000000000000000...,82,59
-```
-
-### Classification Job Type
-
-Each row contains:
-
-- Two Bloom filter cascade bitstrings
-- Classification label (1 or -1)
-
-Example:
-
-```
-00000111000000000000000000000000...;00000111000000000000000000000000...;1
-```
+- Machine learning-based analysis
+- Cascade comparison tests
