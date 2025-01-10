@@ -104,7 +104,7 @@ Where:
 2. Run the dataset generator:
 
 ```ssh
-python data_generator.py
+python jobRunner.py
 ```
 
 The script will:
