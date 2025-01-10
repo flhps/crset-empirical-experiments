@@ -24,7 +24,7 @@ Install the required dependencies:
 pip install -r requirements.txt
 ```
 
-You'll also need to install the custom version of the rbloom library for Bloom filter operations ([redacted for anonymazation](https://anonymous.4open.science/r/rbloom-A54D/README.md)).
+You'll also need to install the custom version of the rbloom library for Bloom filter operations ([rbloom](https://anonymous.4open.science/r/rbloom-A54D/README.md)).
 
 ## Dataset Generation Modes
 
