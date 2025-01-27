@@ -72,7 +72,7 @@ labels = [l.get_label() for l in lines]
 ax1.legend(lines, labels, loc="upper left")
 
 # Add title
-plt.title("Duration and Total Size vs Certificate Capacity")
+plt.title("Duration and Total Size vs Credential Capacity")
 
 # Add grid with minor gridlines for log scale
 ax1.grid(True, which="both", ls="-", alpha=0.2)
