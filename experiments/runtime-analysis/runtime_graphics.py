@@ -18,6 +18,9 @@ df = pd.read_csv(input_file,
                  sep=';',
                  skiprows=1)
 
+# Convert bitsize from bits to bytes
+df['bitsize'] = df['bitsize'] / 8
+
 # Create figure and axis objects with a single subplot
 fig, ax1 = plt.subplots(figsize=(10, 6))
 
@@ -28,8 +31,8 @@ ax1.set_yscale('log')  # Set first y-axis to log scale
 # Plot duration on the first y-axis
 color = 'tab:blue'
 ax1.set_xlabel('Certificate Capacity')
-ax1.set_ylabel('Duration (seconds)', color=color)
-line1 = ax1.plot(df['rhat'], df['duration'], color=color, marker='o', label='Duration', linewidth=2)
+ax1.set_ylabel('Duration in Seconds', color=color)
+line1 = ax1.plot(df['rhat'], df['duration'], color=color, marker='o', label='Duration in Seconds', linewidth=2)
 ax1.tick_params(axis='y', labelcolor=color)
 
 # Force y-axis limits for duration
@@ -41,10 +44,10 @@ ax1.set_ylim(duration_min * 0.9, duration_max * 1.1)  # Smaller scale factors
 ax2 = ax1.twinx()
 ax2.set_yscale('log')  # Set second y-axis to log scale
 color = 'tab:red'
-ax2.set_ylabel('Bitsize (bytes)', color=color)
+ax2.set_ylabel('Total Size in Bytes', color=color)
 
 # Plot bitsize
-line2 = ax2.plot(df['rhat'], df['bitsize'], color=color, marker='s', label='Bitsize (bytes)', linewidth=2)
+line2 = ax2.plot(df['rhat'], df['bitsize'], color=color, marker='s', label='Total Size in Bytes', linewidth=2)
 ax2.tick_params(axis='y', labelcolor=color)
 
 # Force y-axis limits for bitsize
@@ -58,7 +61,7 @@ labels = [l.get_label() for l in lines]
 ax1.legend(lines, labels, loc='upper left')
 
 # Add title
-plt.title('Duration and Bitsize vs Certificate Capacity')
+plt.title('Duration and Total Size vs Certificate Capacity')
 
 # Add grid with minor gridlines for log scale
 ax1.grid(True, which="both", ls="-", alpha=0.2)
