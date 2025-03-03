@@ -1,10 +1,10 @@
 # CRSet: Privacy-Preserving Credential Revocation Dataset Generator
 
-This repository contains the dataset generation code for the research paper "CRSet: Non-Interactive Verifiable Credential Revocation with Metadata Privacy for Issuers and Everyone Else". It generates Bloom filter cascade data structures to evaluate privacy guarantees and performance characteristics of the CRSet credential revocation mechanism.
+This repository contains the dataset generation code for the research paper **[CRSet: Non-Interactive Verifiable Credential Revocation with Metadata Privacy for Issuers and Everyone Else](https://arxiv.org/abs/2501.17089)**.
 
 ## Background
 
-This tool supports research on privacy-preserving revocation mechanisms for Self-Sovereign Identity (SSI) systems. CRSet allows anyone to verify the revocation status of individual Verifiable Credentials while preventing inference about issuer metrics like total issuance volume or revocation patterns. The generator creates test datasets for analyzing both privacy guarantees and performance characteristics.
+This tool supports research on privacy-preserving revocation mechanisms for Self-Sovereign Identity (SSI) systems. CRSet allows anyone to verify the revocation status of individual Verifiable Credentials while preventing inference about issuer metrics like total issuance volume or revocation patterns. The generator creates test datasets for analyzing both privacy and performance characteristics.
 
 ## Features
 
@@ -15,7 +15,6 @@ This tool supports research on privacy-preserving revocation mechanisms for Self
 - Performance benchmarking tools
 - Support for both single cascade and paired cascade generation
 
-
 ## Setup
 
 Install the required dependencies:
@@ -24,7 +23,7 @@ Install the required dependencies:
 pip install -r requirements.txt
 ```
 
-You'll also need to install the custom version of the rbloom library for Bloom filter operations ([rbloom](https://anonymous.4open.science/r/rbloom-A54D/README.md)).
+You'll also need to install the custom version of the rbloom library for Bloom filter operations ([rbloom](https://github.com/jfelixh/rbloom)).
 
 ## Dataset Generation Modes
 
@@ -126,3 +125,16 @@ The tool includes benchmarking capabilities for:
 
 - Machine learning-based analysis
 - Cascade comparison tests
+
+## Acknowledgments
+
+We thank the Ethereum Foundation for funding this work with an Ethereum Academic Grant under reference number FY24-1545.
+
+## Links and References
+
+- ![arXiv](https://img.shields.io/badge/arXiv-2501.17089-b31b1b.svg) **[CRSet: Non-Interactive Verifiable Credential Revocation with Metadata Privacy for Issuers and Everyone Else](https://arxiv.org/abs/2501.17089)**  
+  _Hoops et al., 2025._
+- ![GitHub](https://img.shields.io/badge/GitHub-crset--demo-blue?logo=github) **[crset-issuer-backend](https://github.com/jfelixh/crset-demo)**
+- ![GitHub](https://img.shields.io/badge/GitHub-crset--issuer--backend-blue?logo=github) **[crset-issuer-backend](https://github.com/jfelixh/crset-issuer-backend)**
+- ![GitHub](https://img.shields.io/badge/GitHub-crset--check-blue?logo=github) **[crset-check](https://github.com/jfelixh/crset-check)**
+- ![GitHub](https://img.shields.io/badge/GitHub-crset--cascade-blue?logo=github) **[crset-cascade](https://github.com/jfelixh/crset-cascade/)**
