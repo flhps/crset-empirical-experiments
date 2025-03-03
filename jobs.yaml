@@ -1,0 +1,83 @@
+sequence:
+  # - type: cascadeTest
+  #   # sanity test
+  #   params:
+  #     r: 100000
+  #     s: 100000
+  #     rhat: 100000
+  #     parallelize: false
+  # - type: cascadeTest
+  #   # sanity test
+  #   params:
+  #     r: 50000
+  #     s: 100000
+  #     rhat: 50000
+  #     parallelize: true
+  #  - type: benchStatusCascade
+  #    # parameterization test that we have data for already
+  #    params:
+  #      name: "varyRhatAndP"
+  #      r: 20000
+  #      s: 40000
+  #      rhat: [20000, 1000000, 20000]
+  #      p: [0.02, 0.6, 0.02]
+  #      k: 1
+  #      samples: 3
+  # - type: benchStatusCascade
+  #   # testing mainly lookup times
+  #   params:
+  #     name: "benchLookup"
+  #     r: 20000 # irrelevant
+  #     s: 2000 # irrelevant
+  #     rhat: [131072, 8388608, -1] # min size bitstring, max size we can compute somewhat fast is 2**23, code for log
+  #     p: 0.53
+  #     k: 1
+  #     samples: 3
+  - type: datasetGeneration
+    # Dataset generation without certificate padding (unsecure)
+    params:
+      pairs_mode: false
+      use_padding: false
+      m: 100000 # turns into maximum number of valid ids
+      p: 0.50
+      k: 1
+      samples: 900
+      parallelize: false
+      outputDirectory: "data/no_padding"
+      pad_output_format: false
+  - type: datasetGeneration
+    # Dataset generation with certificate padding
+    params:
+      pairs_mode: false
+      use_padding: true
+      rhat: 131072 # max number of valid ids
+      p: 0.53
+      k: 1
+      samples: 10000
+      parallelize: false
+      outputDirectory: "data/with_padding"
+      pad_output_format: true
+  - type: datasetGeneration
+    # Dataset generation without certificate padding (unsecure)
+    params:
+      pairs_mode: true
+      use_padding: false
+      m: 131072
+      p: 0.53
+      k: 1
+      samples: 10000
+      parallelize: false
+      outputDirectory: "data/no_padding"
+      pad_output_format: true
+  - type: datasetGeneration
+    # Dataset generation with certificate padding
+    params:
+      pairs_mode: true
+      use_padding: true
+      rhat: 131072
+      p: 0.53
+      k: 1
+      samples: 10000
+      parallelize: false
+      outputDirectory: "data/with_padding"
+      pad_output_format: true
