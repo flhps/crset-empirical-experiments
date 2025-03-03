@@ -1,4 +1,4 @@
-# CRSet: Privacy-Preserving Credential Revocation Dataset Generator
+# CRSet: Empirical Experiments
 
 This repository contains the dataset generation code for the research paper **[CRSet: Non-Interactive Verifiable Credential Revocation with Metadata Privacy for Issuers and Everyone Else](https://arxiv.org/abs/2501.17089)**.
 
