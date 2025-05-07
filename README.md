@@ -78,7 +78,7 @@ Where:
 - concatenated_bitstrings: Base64-encoded Bloom filter cascade
 - num_included: Number of valid credentials
 - num_excluded: Number of revoked credentials
-- num_excluded: Number of revoked credentials
+- duration: Total construction time
 - tries: Number of attempts needed for successful construction
 
 ### Pairs Mode
