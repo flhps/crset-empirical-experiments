@@ -7,25 +7,6 @@ import os
 os.makedirs("images", exist_ok=True)
 
 
-def rhat_from_vy(v: float, y: float) -> float:
-    """
-    Calculate rhat based on volume and lifetime.
-
-    Args:
-        v (float): Yearly issuance volume
-        y (float): Lifetime in years
-
-    Returns:
-        float: Calculated rhat value
-    """
-    x = 0.05
-    delta = 1.1
-    t = 1
-    fraction = (math.pow(delta, t + 1) - 1) * math.pow(delta, y - t)
-    fraction = fraction / (delta - 1)
-    return v * (1 - x) * fraction
-
-
 def theoretical_bfc_size(rhat: float) -> float:
     """
     Calculate theoretical BFC size from rhat.
@@ -94,13 +75,11 @@ def generate_data():
         pandas.DataFrame: DataFrame containing Volume, Lifetime, Bitsize, and Levels
     """
     data = []
-    for vexp in range(3, 9):
-        for y in [18, 14, 10, 6, 2]:
-            v = math.pow(10, vexp)
-            rhat = rhat_from_vy(v, y)
-            data.append([v, y, theoretical_bfc_size(rhat), expected_levels(rhat)])
+    for blobs in range(1, 6):
+        rhat = blobs * 170000
+        data.append([rhat, theoretical_bfc_size(rhat), expected_levels(rhat)])
 
-    return pd.DataFrame(data, columns=["Volume", "Lifetime", "Bitsize", "Levels"])
+    return pd.DataFrame(data, columns=["Capacity", "Bitsize", "Levels"])
 
 
 def plot_issuance_size(df: pd.DataFrame):
@@ -111,17 +90,14 @@ def plot_issuance_size(df: pd.DataFrame):
         df (pandas.DataFrame): Input DataFrame containing the data
     """
     fig = plt.figure(figsize=(6, 4))
-    plt.title("Yearly Issuance Volume vs Expected Size")
+    plt.title("Capacity vs Expected Size")
 
-    for y in df["Lifetime"].unique():
-        y_data = df[df["Lifetime"] == y]
-        plt.plot(y_data["Volume"], y_data["Bitsize"], label=f"y={y}")
+    y_data = df
+    plt.plot(y_data["Capacity"], y_data["Bitsize"])
 
-    plt.xlabel("Yearly Issuance Volume")
+    plt.xlabel("Capacity")
     plt.ylabel("Expected Size in KB")
-    plt.yscale("log")
-    plt.xscale("log")
-    plt.legend()
+    # plt.yscale("log")
     plt.grid(True)
     plt.savefig("images/issuance_size.png", dpi=300, bbox_inches="tight")
     plt.close()
@@ -135,16 +111,13 @@ def plot_issuance_levels(df: pd.DataFrame):
         df (pandas.DataFrame): Input DataFrame containing the data
     """
     fig = plt.figure(figsize=(6, 4))
-    plt.title("Yearly Issuance Volume vs Expected Levels")
+    plt.title("Capacity vs Expected Levels")
 
-    for y in df["Lifetime"].unique():
-        y_data = df[df["Lifetime"] == y]
-        plt.plot(y_data["Volume"], y_data["Levels"], label=f"y={y}")
+    y_data = df
+    plt.plot(y_data["Capacity"], y_data["Levels"])
 
-    plt.xlabel("Yearly Issuance Volume")
+    plt.xlabel("Capacity")
     plt.ylabel("Expected Levels")
-    plt.xscale("log")
-    plt.legend()
     plt.grid(True)
     plt.savefig("images/issuance_levels.png", dpi=300, bbox_inches="tight")
     plt.close()
@@ -162,4 +135,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
