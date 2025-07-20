@@ -23,7 +23,7 @@ Install the required dependencies:
 pip install -r requirements.txt
 ```
 
-You'll also need to install the custom version of the rbloom library for Bloom filter operations ([rbloom](https://github.com/jfelixh/rbloom)).
+You'll also need to install the custom version of the rbloom library for Bloom filter operations ([rbloom](https://github.com/flhps/rbloom)).
 
 ## Dataset Generation Modes
 
@@ -132,9 +132,8 @@ We thank the Ethereum Foundation for funding this work with an Ethereum Academic
 
 ## Links and References
 
-- ![arXiv](https://img.shields.io/badge/arXiv-2501.17089-b31b1b.svg) **[CRSet: Non-Interactive Verifiable Credential Revocation with Metadata Privacy for Issuers and Everyone Else](https://arxiv.org/abs/2501.17089)**  
-  _Hoops et al., 2025._
-- ![GitHub](https://img.shields.io/badge/GitHub-crset--demo-blue?logo=github) **[crset-issuer-backend](https://github.com/jfelixh/crset-demo)**
-- ![GitHub](https://img.shields.io/badge/GitHub-crset--issuer--backend-blue?logo=github) **[crset-issuer-backend](https://github.com/jfelixh/crset-issuer-backend)**
-- ![GitHub](https://img.shields.io/badge/GitHub-crset--check-blue?logo=github) **[crset-check](https://github.com/jfelixh/crset-check)**
-- ![GitHub](https://img.shields.io/badge/GitHub-crset--cascade-blue?logo=github) **[crset-cascade](https://github.com/jfelixh/crset-cascade/)**
+- ![arXiv](https://img.shields.io/badge/arXiv-2501.17089-b31b1b.svg) **[CRSet: Private Non-Interactive Verifiable Credential Revocation](https://arxiv.org/abs/2501.17089)**
+- ![GitHub](https://img.shields.io/badge/GitHub-crset--demo-blue?logo=github) **[crset-issuer-backend](https://github.com/flhps/crset-demo)**
+- ![GitHub](https://img.shields.io/badge/GitHub-crset--issuer--backend-blue?logo=github) **[crset-issuer-backend](https://github.com/flhps/crset-issuer-backend)**
+- ![GitHub](https://img.shields.io/badge/GitHub-crset--check-blue?logo=github) **[crset-check](https://github.com/flhps/crset-check)**
+- ![GitHub](https://img.shields.io/badge/GitHub-crset--cascade-blue?logo=github) **[crset-cascade](https://github.com/flhps/crset-cascade/)**
